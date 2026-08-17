@@ -1,0 +1,9 @@
+{
+  "name": "macro-flow-stock-navigator",
+  "version": "1.0.0",
+  "description": "Cross-asset macroeconomic indicator calculator, stock archetype alignment engine, and tactical options playbook generator for enterprise agentic harnesses.",
+  "license": "Apache-2.0",
+  "skills": [
+    "macro-flow-stock-navigator"
+  ]
+}
