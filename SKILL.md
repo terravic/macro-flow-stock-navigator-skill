@@ -1,7 +1,7 @@
 ---
 name: macro-flow-stock-navigator
 description: >-
-  Retrieves real-time or historical macro market indicators (RSP/SPY, GLD/SPX, NDX/SPX,
+  Retrieves real-time macro market indicators (RSP/SPY, GLD/SPX, NDX/SPX,
   IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX), classifies target stock tickers by market
   archetype (Mega-Cap Tech, High-Beta Speculative, Cyclical, Defensive, Financials), and computes
   a multi-factor macro alignment score to output a clean, business-like trading decision
@@ -13,7 +13,7 @@ description: >-
 
 # Macro Flow Stock Navigator
 
-An enterprise-grade cross-asset decision engine for Gemini Enterprise, Anthropic Claude, OpenAI ChatGPT, Antigravity, and AI agent harnesses. It bridges macroeconomic regime dynamics with single-stock positioning and tactical options execution.
+An enterprise-grade cross-asset decision engine for AI agent harnesses. It bridges macroeconomic regime dynamics with single-stock positioning and tactical options execution using real-time market data.
 
 ---
 
@@ -34,7 +34,7 @@ When this skill is invoked with a user's stock ticker (e.g., `GOOG`, `SOFI`, `NV
 ```mermaid
 graph TD
     A["User Request with Ticker (e.g., GOOG, SOFI)"] --> B["Execute run_analysis.py CLI Tool"]
-    B --> C["Fetch Live/Synthetic Market Data (8 Ratios + Ticker)"]
+    B --> C["Fetch Live Market Data (8 Ratios + Ticker)"]
     C --> D["Calculate 50-MA, Slope, Percentiles & Volatility"]
     D --> E["Archetype Classification & Macro Alignment Matrix"]
     E --> F["Formulate Stock Signal & Options Playbook"]
@@ -45,30 +45,35 @@ graph TD
 Execute the analysis script located at [`scripts/run_analysis.py`](scripts/run_analysis.py) using the user's ticker symbol:
 
 ```bash
-# Standard execution (auto-fetches live data or falls back to synthetic)
-python3 scripts/run_analysis.py --ticker <TICKER> --format spark
+# Standard real-time execution (outputs Markdown dashboard)
+python3 scripts/run_analysis.py --ticker <TICKER> --format markdown
+
+# Generate interactive Canvas UI HTML Dashboard (renders in Canvas iframe):
+python3 scripts/run_analysis.py --ticker <TICKER> --format html --output reports/dashboard_<TICKER>.html
 
 # For programmatic downstream agent JSON consumption:
 python3 scripts/run_analysis.py --ticker <TICKER> --format json
-
-# For purely offline / synthetic benchmark mode:
-python3 scripts/run_analysis.py --ticker <TICKER> --mode synthetic
 ```
 
 ### Step 2: Extract & Verify Output
-1. The script automatically fetches the required 120-day historical time series for the 8 macro ratio pairs and the target equity.
+1. The script automatically fetches real-time historical time series for the 8 macro ratio pairs and the target equity.
 2. It computes the 50-day moving average, trend slope, and 90-day percentile rank for each indicator.
 3. It determines the **Archetype Sensitivity Alignment** and calculates the **Macro Alignment Score** (-100 to +100).
-4. It derives the **Recommended Action Signal** (e.g., `🟢 STRONG BUY`, `🟢 ACCUMULATE`, `🟡 NEUTRAL (RANGING)`, `🔴 PROTECT / SELL`).
+4. It derives the **Recommended Action Signal** (e.g., `STRONG BUY`, `ACCUMULATE`, `NEUTRAL (RANGING)`, `PROTECT / SELL`).
 5. It computes the exact **Options Playbook** (target strategy, recommended delta, exact strike price offset below support, DTE, and risk warnings).
 
-### Step 3: Present the Executive Dashboard
-Deliver the formatted Markdown directly to the user. Maintain the concise visual hierarchy:
-1. **Header & Summary Table:** Ticker, price, action badge (`🟢`, `🟡`, `🔴`), alignment gauge, and macro regime.
+### Step 3: Present the Executive Dashboard & Canvas UI
+Deliver the formatted Markdown or interactive Canvas UI dashboard directly to the user:
+1. **Executive Summary Table:** Ticker, price, action badge, alignment gauge, and macro regime.
 2. **Macro Cross-Asset Indicators Table:** 8 macro ratios with ratio tickers, current value, 50-MA status, trend signal, and market meaning.
-3. **Macro Drivers & Sensitivity Analysis:** Technical health metrics and concise list of `🟢 Tailwinds` vs. `🔴 Headwinds`.
+3. **Macro Drivers & Sensitivity Analysis:** Technical health metrics and concise list of Tailwinds vs. Headwinds.
 4. **Strategic Options Playbook:** Clean table with Strategy, Delta, Strike, DTE, Yield, Profit Target, and Stop Loss.
-5. **Key Risk Considerations:** Specific macro contradictions and risk factors.
+5. **Interactive Canvas UI Dashboard:** If visual dashboards are desired, generate an `.html` file with `--format html` (powered by the standalone [`templates/dashboard_template.html`](templates/dashboard_template.html) template) for native rendering in Canvas iframe with:
+   - Light and dark theme toggle.
+   - Interactive stock price trend chart with 50-MA and 200-MA overlays.
+   - 8-Ratio macro indicator percentile radar chart.
+   - Interactive options payoff (P&L) expiration simulator with dynamic price slider.
+6. **Key Risk Considerations:** Specific macro contradictions and risk factors.
 
 ---
 
@@ -133,9 +138,6 @@ The decision engine routes the target ticker into 5 distinct behavioral archetyp
 To verify the skill's integrity and execute the automated test suite:
 
 ```bash
-# Run the complete test suite (unit tests + synthetic verification)
+# Run the complete test suite (unit tests + real-time live verification)
 python3 scripts/test_skill.py
-
-# Re-generate clean synthetic datasets (100% synthetic, zero PHI/sensitive data)
-python3 scripts/generate_synthetic_data.py --days 150
 ```

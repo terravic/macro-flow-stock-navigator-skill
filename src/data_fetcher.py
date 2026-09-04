@@ -1,14 +1,16 @@
 """
 Data fetcher for Macro Flow Stock Navigator.
-Retrieves market data using yfinance with offline fallback and synthetic data support.
+Retrieves real-time and historical market data for macro ratio indicators
+and target stock equities.
 """
 
-import json
 import os
-from datetime import datetime, timedelta
+import urllib.parse
+from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 import numpy as np
 import pandas as pd
+import requests
 
 from src.config import (
     INDICATOR_TICKERS,
@@ -18,102 +20,107 @@ from src.config import (
 
 class MarketDataFetcher:
     """
-    Manages live and synthetic market data fetching, ticker metric calculations,
-    and fallback handling.
+    Fetches real-time and historical market data for target equities
+    and macroeconomic ratio benchmarks.
     """
 
-    def __init__(self, cache_dir: Optional[str] = None):
-        self.cache_dir = cache_dir or os.path.join(os.path.dirname(__file__), "..", "sample_data")
-        os.makedirs(self.cache_dir, exist_ok=True)
+    MACRO_SYMBOLS = {
+        "RSP": "RSP",
+        "SPY": "SPY",
+        "GLD": "GLD",
+        "QQQ": "QQQ",
+        "IWM": "IWM",
+        "SPHB": "SPHB",
+        "SPLV": "SPLV",
+        "XLY": "XLY",
+        "XLP": "XLP",
+        "VIX": "^VIX",
+        "SPX": "^GSPC",
+    }
+
+    def __init__(self, request_timeout: int = 12):
+        self.timeout = request_timeout
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+    def fetch_series_from_api(self, symbol: str, range_str: str = "1y") -> Optional[pd.Series]:
+        """
+        Fetches historical daily close price series for a given ticker symbol.
+        """
+        encoded_symbol = urllib.parse.quote(symbol)
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_symbol}?range={range_str}&interval=1d"
+        try:
+            response = requests.get(url, headers=self.headers, timeout=self.timeout)
+            if response.status_code != 200:
+                return None
+            data = response.json()
+            result = data.get("chart", {}).get("result")
+            if not result:
+                return None
+            
+            timestamps = result[0].get("timestamp", [])
+            indicators = result[0].get("indicators", {}).get("quote", [{}])[0]
+            closes = indicators.get("close", [])
+            
+            if not timestamps or not closes:
+                return None
+            
+            dates = [datetime.fromtimestamp(ts).strftime("%Y-%m-%d") for ts in timestamps]
+            clean_pairs = [(d, float(c)) for d, c in zip(dates, closes) if c is not None and not np.isnan(c)]
+            if not clean_pairs:
+                return None
+            
+            dates_clean, closes_clean = zip(*clean_pairs)
+            series = pd.Series(closes_clean, index=pd.to_datetime(dates_clean)).sort_index()
+            return series
+        except Exception:
+            return None
 
     def fetch_market_and_ticker_data(
         self,
         ticker: str,
-        lookback_days: int = 120,
-        mode: str = "auto"
-    ) -> Tuple[Dict[str, pd.Series], Dict[str, Any], bool]:
+        lookback_days: int = 120
+    ) -> Tuple[Dict[str, pd.Series], Dict[str, Any]]:
         """
-        Fetches price series for all macro indicators and target ticker.
+        Fetches real price series for all 8 macro indicators and the target stock ticker.
         Returns:
             - prices_dict: Dict[str, pd.Series]
             - ticker_info: Dict[str, Any]
-            - is_synthetic: bool
         """
         ticker = ticker.upper().strip()
+        prices_dict: Dict[str, pd.Series] = {}
 
-        if mode == "synthetic":
-            return self._load_or_generate_synthetic_data(ticker, lookback_days)
+        # 1. Fetch Target Ticker Series
+        target_series = self.fetch_series_from_api(ticker, range_str="1y")
+        if target_series is None or len(target_series) < 5:
+            # Attempt fallback via yfinance if installed
+            try:
+                import yfinance as yf
+                df_ticker = yf.download(ticker, period="1y", progress=False, auto_adjust=True)
+                if not df_ticker.empty and "Close" in df_ticker:
+                    target_series = df_ticker["Close"].dropna()
+            except Exception:
+                pass
 
-        try:
-            import yfinance as yf
-            
-            # List of all symbols to fetch
-            symbols_map = {
-                "RSP": "RSP",
-                "SPY": "SPY",
-                "GLD": "GLD",
-                "QQQ": "QQQ",
-                "IWM": "IWM",
-                "SPHB": "SPHB",
-                "SPLV": "SPLV",
-                "XLY": "XLY",
-                "XLP": "XLP",
-                "VIX": "^VIX",
-                "SPX": "^GSPC",
-            }
-            symbols_to_download = list(set(symbols_map.values()))
-            if ticker not in symbols_to_download:
-                symbols_to_download.append(ticker)
+        if target_series is None or len(target_series) < 5:
+            raise ValueError(f"Failed to fetch market data for ticker '{ticker}'. Please ensure the symbol is valid.")
 
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=lookback_days + 60) # buffer for 50-MA
+        prices_dict[ticker] = target_series
 
-            df_all = yf.download(
-                tickers=symbols_to_download,
-                start=start_date.strftime("%Y-%m-%d"),
-                end=end_date.strftime("%Y-%m-%d"),
-                progress=False,
-                auto_adjust=True
-            )
+        # 2. Fetch Macro Benchmark Symbols
+        for name, symbol in self.MACRO_SYMBOLS.items():
+            s = self.fetch_series_from_api(symbol, range_str="1y")
+            if s is not None and len(s) > 5:
+                prices_dict[name] = s
 
-            if df_all.empty or "Close" not in df_all:
-                if mode == "live":
-                    raise ValueError(f"Failed to fetch live data for {ticker} and macro symbols.")
-                return self._load_or_generate_synthetic_data(ticker, lookback_days)
+        # Derive SPX if needed
+        if "SPX" not in prices_dict and "SPY" in prices_dict:
+            prices_dict["SPX"] = prices_dict["SPY"] * 10.0
 
-            close_df = df_all["Close"]
-            
-            # Build price dict
-            prices_dict = {}
-            for name, symbol in symbols_map.items():
-                if symbol in close_df.columns:
-                    s = close_df[symbol].dropna()
-                    if len(s) > 10:
-                        prices_dict[name] = s
-                elif hasattr(close_df, 'name') and close_df.name == symbol:
-                    prices_dict[name] = close_df.dropna()
-
-            # Ensure SPX exists
-            if "SPX" not in prices_dict and "SPY" in prices_dict:
-                prices_dict["SPX"] = prices_dict["SPY"] * 10.0
-
-            # Target ticker series
-            if ticker in close_df.columns:
-                target_series = close_df[ticker].dropna()
-            else:
-                target_series = close_df.iloc[:, 0].dropna()
-
-            prices_dict[ticker] = target_series
-
-            # Calculate technical metrics for ticker
-            ticker_info = self._calculate_ticker_metrics(ticker, target_series, prices_dict.get("SPY"))
-            return prices_dict, ticker_info, False
-
-        except Exception as e:
-            if mode == "live":
-                raise e
-            # Fallback to synthetic
-            return self._load_or_generate_synthetic_data(ticker, lookback_days)
+        # Calculate technical metrics for target ticker
+        ticker_info = self._calculate_ticker_metrics(ticker, target_series, prices_dict.get("SPY"))
+        return prices_dict, ticker_info
 
     def _calculate_ticker_metrics(
         self,
@@ -122,19 +129,18 @@ class MarketDataFetcher:
         spy_series: Optional[pd.Series] = None
     ) -> Dict[str, Any]:
         """
-        Computes technical indicators for target ticker: Price, 50-MA, 200-MA, RSI, Beta, Volatility.
+        Computes real technical metrics: Current Price, 50-MA, 200-MA, RSI(14), Beta, and Volatility.
         """
-        if len(target_series) == 0:
-            return self._default_ticker_metrics(ticker)
-
         current_price = float(target_series.iloc[-1])
         prev_price = float(target_series.iloc[-2]) if len(target_series) > 1 else current_price
         change_pct = ((current_price - prev_price) / prev_price) * 100.0
 
-        # Moving averages
-        ma50 = float(target_series.rolling(min(50, len(target_series)), min_periods=5).mean().iloc[-1])
-        ma200 = float(target_series.rolling(min(200, len(target_series)), min_periods=20).mean().iloc[-1])
-        
+        # 50-day and 200-day Moving Averages
+        ma50_series = target_series.rolling(min(50, len(target_series)), min_periods=5).mean()
+        ma50 = float(ma50_series.iloc[-1])
+        ma200_series = target_series.rolling(min(200, len(target_series)), min_periods=20).mean()
+        ma200 = float(ma200_series.iloc[-1]) if len(target_series) >= 20 else ma50
+
         diff_ma50_pct = ((current_price - ma50) / ma50) * 100.0 if ma50 != 0 else 0.0
         diff_ma200_pct = ((current_price - ma200) / ma200) * 100.0 if ma200 != 0 else 0.0
 
@@ -143,7 +149,7 @@ class MarketDataFetcher:
 
         # 30-day Annualized Historical Volatility
         returns = target_series.pct_change().dropna()
-        vol_30d = float(returns.tail(30).std() * np.sqrt(252) * 100.0) if len(returns) >= 5 else 35.0
+        vol_30d = float(returns.tail(30).std() * np.sqrt(252) * 100.0) if len(returns) >= 5 else 30.0
 
         # Beta against SPY
         beta = 1.0
@@ -160,6 +166,13 @@ class MarketDataFetcher:
         archetype_key = self._classify_archetype(ticker, beta, vol_30d)
         archetype_data = STOCK_ARCHETYPES.get(archetype_key, STOCK_ARCHETYPES["MEGA_CAP_TECH"])
 
+        # Historical series slice for interactive visualization
+        tail_len = min(60, len(target_series))
+        dates_tail = [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)[:10] for d in target_series.index[-tail_len:]]
+        closes_tail = [round(float(c), 2) for c in target_series.iloc[-tail_len:]]
+        ma50_tail = [round(float(m), 2) if not pd.isna(m) else round(float(closes_tail[i]), 2) for i, m in enumerate(ma50_series.iloc[-tail_len:])]
+        ma200_tail = [round(float(m), 2) if not pd.isna(m) else round(float(closes_tail[i]), 2) for i, m in enumerate(ma200_series.iloc[-tail_len:])]
+
         return {
             "ticker": ticker,
             "current_price": round(current_price, 2),
@@ -173,7 +186,13 @@ class MarketDataFetcher:
             "beta": round(beta, 2),
             "archetype_key": archetype_key,
             "archetype_name": archetype_data["name"],
-            "archetype_desc": archetype_data["description"]
+            "archetype_desc": archetype_data["description"],
+            "price_history": {
+                "dates": dates_tail,
+                "prices": closes_tail,
+                "ma50": ma50_tail,
+                "ma200": ma200_tail
+            }
         }
 
     def _calculate_rsi(self, series: pd.Series, period: int = 14) -> float:
@@ -199,12 +218,12 @@ class MarketDataFetcher:
 
     def _classify_archetype(self, ticker: str, beta: float, vol_30d: float) -> str:
         """
-        Maps ticker to archetype taxonomy using lookup or dynamic heuristics.
+        Maps ticker to archetype taxonomy using known lookup or dynamic heuristics.
         """
         if ticker in TICKER_ARCHETYPE_LOOKUP:
             return TICKER_ARCHETYPE_LOOKUP[ticker]
 
-        # Heuristic classification for arbitrary tickers
+        # Dynamic heuristics based on realized beta and volatility
         if beta > 1.45 or vol_30d > 45.0:
             return "HIGH_BETA_GROWTH"
         elif beta < 0.80 and vol_30d < 22.0:
@@ -213,120 +232,3 @@ class MarketDataFetcher:
             return "MEGA_CAP_TECH"
         else:
             return "CYCLICAL_INDUSTRIAL"
-
-    def _default_ticker_metrics(self, ticker: str) -> Dict[str, Any]:
-        return {
-            "ticker": ticker,
-            "current_price": 100.0,
-            "change_pct": 0.0,
-            "ma50": 100.0,
-            "diff_ma50_pct": 0.0,
-            "ma200": 100.0,
-            "diff_ma200_pct": 0.0,
-            "rsi_14": 50.0,
-            "historical_vol_30d": 25.0,
-            "beta": 1.0,
-            "archetype_key": "MEGA_CAP_TECH",
-            "archetype_name": STOCK_ARCHETYPES["MEGA_CAP_TECH"]["name"],
-            "archetype_desc": STOCK_ARCHETYPES["MEGA_CAP_TECH"]["description"]
-        }
-
-    def _load_or_generate_synthetic_data(
-        self,
-        ticker: str,
-        lookback_days: int = 120
-    ) -> Tuple[Dict[str, pd.Series], Dict[str, Any], bool]:
-        """
-        Generates clean synthetic market data for offline execution and testing.
-        100% synthetic, zero real/PHI data.
-        """
-        synthetic_file = os.path.join(self.cache_dir, "synthetic_market_data.json")
-        
-        # Check if pre-generated file exists
-        if os.path.exists(synthetic_file):
-            try:
-                with open(synthetic_file, "r") as f:
-                    raw = json.load(f)
-                dates = pd.date_range(end=datetime.now(), periods=len(raw.get("SPY", [])), freq="B")
-                prices_dict = {k: pd.Series(v, index=dates) for k, v in raw.items()}
-                
-                # If target ticker is not in cache, synthesize it
-                if ticker not in prices_dict:
-                    prices_dict[ticker] = self._synthesize_ticker_series(ticker, prices_dict["SPY"], len(dates))
-                
-                ticker_info = self._calculate_ticker_metrics(ticker, prices_dict[ticker], prices_dict["SPY"])
-                return prices_dict, ticker_info, True
-            except Exception:
-                pass
-
-        # Generate on the fly
-        dates = pd.date_range(end=datetime.now(), periods=lookback_days + 40, freq="B")
-        n = len(dates)
-        np.random.seed(42)
-
-        # Baseline index simulation (geometric Brownian motion)
-        spy_returns = np.random.normal(0.0004, 0.01, n)
-        spy_prices = 500.0 * np.cumprod(1 + spy_returns)
-        spy_s = pd.Series(spy_prices, index=dates)
-
-        # Macro assets
-        rsp_s = pd.Series(165.0 * np.cumprod(1 + np.random.normal(0.0003, 0.009, n)), index=dates)
-        gld_s = pd.Series(210.0 * np.cumprod(1 + np.random.normal(0.0002, 0.008, n)), index=dates)
-        qqq_s = pd.Series(440.0 * np.cumprod(1 + np.random.normal(0.0006, 0.013, n)), index=dates)
-        iwm_s = pd.Series(205.0 * np.cumprod(1 + np.random.normal(0.0003, 0.014, n)), index=dates)
-        sphb_s = pd.Series(85.0 * np.cumprod(1 + np.random.normal(0.0005, 0.015, n)), index=dates)
-        splv_s = pd.Series(68.0 * np.cumprod(1 + np.random.normal(0.0002, 0.006, n)), index=dates)
-        xly_s = pd.Series(185.0 * np.cumprod(1 + np.random.normal(0.0004, 0.012, n)), index=dates)
-        xlp_s = pd.Series(78.0 * np.cumprod(1 + np.random.normal(0.0002, 0.005, n)), index=dates)
-        vix_vals = np.clip(16.0 + np.cumsum(np.random.normal(0, 0.8, n)), 11.0, 38.0)
-        vix_s = pd.Series(vix_vals, index=dates)
-
-        prices_dict = {
-            "SPY": spy_s,
-            "SPX": spy_s * 10.0,
-            "RSP": rsp_s,
-            "GLD": gld_s,
-            "QQQ": qqq_s,
-            "IWM": iwm_s,
-            "SPHB": sphb_s,
-            "SPLV": splv_s,
-            "XLY": xly_s,
-            "XLP": xlp_s,
-            "VIX": vix_s
-        }
-
-        # Synthesize target ticker
-        target_s = self._synthesize_ticker_series(ticker, spy_s, n)
-        prices_dict[ticker] = target_s
-
-        ticker_info = self._calculate_ticker_metrics(ticker, target_s, spy_s)
-        return prices_dict, ticker_info, True
-
-    def _synthesize_ticker_series(self, ticker: str, spy_series: pd.Series, length: int) -> pd.Series:
-        """
-        Creates synthetic stock price path consistent with ticker's known profile.
-        """
-        np.random.seed(abs(hash(ticker)) % 10000)
-        base_price_map = {
-            "GOOG": 175.0,
-            "GOOGL": 175.0,
-            "SOFI": 9.50,
-            "AAPL": 225.0,
-            "NVDA": 125.0,
-            "MSFT": 420.0,
-            "TSLA": 210.0,
-            "JNJ": 160.0,
-            "CAT": 350.0
-        }
-        start_price = base_price_map.get(ticker, 100.0)
-        
-        # Archetype beta influence
-        archetype_key = TICKER_ARCHETYPE_LOOKUP.get(ticker, "MEGA_CAP_TECH")
-        beta = STOCK_ARCHETYPES[archetype_key]["default_beta"]
-        
-        spy_ret = spy_series.pct_change().fillna(0).values
-        noise = np.random.normal(0.0002, 0.015 * beta, length)
-        ticker_ret = (spy_ret * beta) + noise
-        
-        prices = start_price * np.cumprod(1 + ticker_ret)
-        return pd.Series(prices, index=spy_series.index)

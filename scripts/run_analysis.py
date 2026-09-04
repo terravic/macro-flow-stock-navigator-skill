@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 """
 Main Execution Script for Macro Flow Stock Navigator.
-Retrieves market indicators, executes decision engine, and outputs
-Gemini Spark UI Markdown or structured JSON.
+Retrieves real-time market indicators, executes decision engine, and outputs
+Markdown dashboard or structured JSON.
 """
 
 import sys
@@ -16,14 +15,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from src.data_fetcher import MarketDataFetcher
 from src.indicators import MacroIndicatorCalculator
 from src.decision_engine import AlignmentDecisionEngine
-from src.renderer import SparkDashboardRenderer
+from src.renderer import DashboardRenderer
 from src.config import DEFAULT_NOMINAL_GDP_TRILLIONS
 
 def run_navigator(
     ticker: str = "GOOG",
     lookback_days: int = 90,
-    mode: str = "auto",
-    output_format: str = "spark",
+    output_format: str = "markdown",
     output_file: str = None,
     nominal_gdp: float = DEFAULT_NOMINAL_GDP_TRILLIONS
 ) -> str:
@@ -33,11 +31,10 @@ def run_navigator(
     ticker = ticker.upper().strip()
     fetcher = MarketDataFetcher()
     
-    # 1. Fetch Market & Ticker Time Series
-    prices_dict, ticker_info, is_synthetic = fetcher.fetch_market_and_ticker_data(
+    # 1. Fetch Real-Time Market & Ticker Time Series
+    prices_dict, ticker_info = fetcher.fetch_market_and_ticker_data(
         ticker=ticker,
-        lookback_days=lookback_days,
-        mode=mode
+        lookback_days=lookback_days
     )
 
     # 2. Compute 8 Core Macro Indicators
@@ -54,11 +51,16 @@ def run_navigator(
 
     # 4. Render Desired Output Format
     if output_format == "json":
-        rendered = SparkDashboardRenderer.render_json(
+        rendered = DashboardRenderer.render_json(
             ticker_info=ticker_info,
             indicators=indicators,
-            decision=decision,
-            is_synthetic=is_synthetic
+            decision=decision
+        )
+    elif output_format == "html" or output_format == "canvas":
+        rendered = DashboardRenderer.render_html(
+            ticker_info=ticker_info,
+            indicators=indicators,
+            decision=decision
         )
     elif output_format == "summary":
         rendered = (
@@ -67,12 +69,11 @@ def run_navigator(
             f"Alignment: {decision['alignment_score']:+.1f}/100 | "
             f"Playbook: {decision['options_playbook']['tactical_execution']['strategy']}"
         )
-    else: # "spark" or "markdown"
-        rendered = SparkDashboardRenderer.render_markdown(
+    else: # "markdown"
+        rendered = DashboardRenderer.render_markdown(
             ticker_info=ticker_info,
             indicators=indicators,
-            decision=decision,
-            is_synthetic=is_synthetic
+            decision=decision
         )
 
     # 5. Save to file if requested
@@ -80,13 +81,14 @@ def run_navigator(
         os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
         with open(output_file, "w") as f:
             f.write(rendered)
-        print(f"[OUTPUT] Output saved to: {output_file}", file=sys.stderr)
+        rel_output = os.path.relpath(output_file, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+        print(f"[OUTPUT] Output saved to: {rel_output}", file=sys.stderr)
 
     return rendered
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Macro Flow Stock Navigator - Enterprise Decision Engine"
+        description="Macro Flow Stock Navigator - Real-Time Stock & Macro Decision Engine"
     )
     parser.add_argument(
         "--ticker", "-t",
@@ -101,16 +103,10 @@ def main():
         help="Lookback period in trading days (default: 90)"
     )
     parser.add_argument(
-        "--mode", "-m",
-        choices=["auto", "live", "synthetic"],
-        default="auto",
-        help="Data retrieval mode: 'auto' (tries live, falls back to synthetic), 'live', or 'synthetic'"
-    )
-    parser.add_argument(
         "--format", "-f",
-        choices=["spark", "markdown", "json", "summary"],
-        default="spark",
-        help="Output format: 'spark' (Markdown dashboard), 'json', or 'summary'"
+        choices=["markdown", "json", "summary", "html", "canvas"],
+        default="markdown",
+        help="Output format: 'markdown', 'json', 'summary', 'html' (Canvas UI interactive dashboard)"
     )
     parser.add_argument(
         "--output", "-o",
@@ -130,7 +126,6 @@ def main():
     output = run_navigator(
         ticker=args.ticker,
         lookback_days=args.lookback,
-        mode=args.mode,
         output_format=args.format,
         output_file=args.output,
         nominal_gdp=args.gdp

@@ -4,4 +4,4 @@ Enterprise Agent Skill & Decision Engine
 """
 
 __version__ = "1.0.0"
-__author__ = "Antigravity & Gemini Enterprise"
+__author__ = "Macro Flow Stock Navigator Team"

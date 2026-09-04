@@ -2,57 +2,57 @@
 
 | Metric | Value | Metric | Value |
 | :--- | :--- | :--- | :--- |
-| **Current Price** | $363.93 (+3.01%) | **Stock Archetype** | Mega-Cap Tech / High Quality Growth |
-| **Recommended Action** | 🟢 ACCUMULATE | **Macro Alignment** | [██████░░░░] +37.5/100 (🟢 Bullish) |
-| **Macro Regime** | Consolidation / Sector Rotation | **Timestamp** | 2026-08-17 19:33 UTC *(Simulated Benchmark)* |
+| **Current Price** | $232.25 (+1.66%) | **Stock Archetype** | Mega-Cap Tech / High Quality Growth |
+| **Recommended Action** | NEUTRAL (RANGING) | **Macro Alignment** | [████░░░░░░] -7.5/100 (Neutral) |
+| **Macro Regime** | Consolidation / Sector Rotation | **Timestamp** | 2026-09-04 15:20 UTC |
 
 ## 1. Macro Cross-Asset Indicators (8 Ratios)
 
 | Indicator | Ratio Tickers | Current Value | 50-MA Status | Trend | Interpretation |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Market Breadth (Equal vs Cap Weight)** | `RSP / SPY` | `0.2977` | 🟡 At MA (-0.35%) | Rising | Broad market participation expanding beyond Mega-Caps |
-| **Macro Risk Sentiment / Inflation Hedge** | `GLD / SPX` | `0.0352` | 🔴 Below (-1.76%) | Falling | Risk-on equity dominance; capital favoring productive assets |
-| **Tech Momentum vs Broad Market** | `NDX / SPX` | `0.0955` | 🟢 Above (+4.76%) | Strong Rising | Tech leadership and growth multiple expansion |
-| **Small Cap Strength / Economic Sentiment** | `IWM / SPY` | `0.4186` | 🔴 Below (-7.59%) | Strong Falling | Small-cap lag; tight credit conditions and large-cap refuge |
-| **Macro Valuation (S&P to US GDP Ratio)** | `SPX / GDP` | `184.78` | 🟢 Above (+4.66%) | Strong Rising | Equity market valuation expanding relative to GDP |
-| **Speculative Appetite vs Capital Preservation** | `SPHB / SPLV` | `1.6876` | 🟢 Above (+1.60%) | Falling | Defensive capital preservation; flight to low-volatility |
-| **Cyclical Growth vs Defensive Consumer** | `XLY / XLP` | `2.6309` | 🟢 Above (+4.08%) | Rising | Consumer confidence robust; cyclical discretionary spending |
-| **Normalized Market Fear vs Index Trend** | `VIX / SPX` | `0.1773` | 🔴 Below (-28.38%) | Strong Falling | Volatility compressing; steady market trend and low hedging demand |
+| **Market Breadth (Equal vs Cap Weight)** | `RSP / SPY` | `0.2849` | At MA (-0.71%) | Falling | Mega-cap concentration; narrow leadership / breadth divergence |
+| **Macro Risk Sentiment / Inflation Hedge** | `GLD / SPX` | `0.0529` | Above (+3.32%) | Falling | Risk-on equity dominance; capital favoring productive assets |
+| **Tech Momentum vs Broad Market** | `NDX / SPX` | `0.093` | At MA (-0.67%) | Falling | Tech lagging; defensive/value rotation underway |
+| **Small Cap Strength / Economic Sentiment** | `IWM / SPY` | `0.384` | Below (-2.16%) | Strong Falling | Small-cap lag; tight credit conditions and large-cap refuge |
+| **Macro Valuation (S&P to US GDP Ratio)** | `SPX / GDP` | `222.1` | Above (+1.54%) | Flat / Neutral | Consolidating / Neutral Transition |
+| **Speculative Appetite vs Capital Preservation** | `SPHB / SPLV` | `1.9663` | Above (+1.97%) | Falling | Defensive capital preservation; flight to low-volatility |
+| **Cyclical Growth vs Defensive Consumer** | `XLY / XLP` | `1.3469` | Below (-1.47%) | Falling | Consumer caution; defensive staple rotation and slowdown watch |
+| **Normalized Market Fear vs Index Trend** | `VIX / SPX` | `0.185` | Below (-13.42%) | Strong Falling | Volatility compressing; steady market trend and low hedging demand |
 
 ## 2. Macro Drivers & Sensitivity Analysis
 
-- **Technical Health:** Price vs 50-MA: `+16.43%` | 200-MA: `+45.29%` | RSI(14): `68.1` | 30d Volatility: `35.3%` | Beta: `1.92`
+- **Technical Health:** Price vs 50-MA: `+10.28%` | 200-MA: `+18.08%` | RSI(14): `54.9` | 30d Volatility: `45.6%` | Beta: `1.92`
 - **Regime Context:** Cross-current rotation between sectors; market breadth is mixed.
 
 **Key Macro Tailwinds (Positive Drivers):**
-- 🟢 **Tech Momentum vs Broad Market (`NDX / SPX`)** is Strong Rising: Tech leadership and growth multiple expansion.
-- 🟢 **Normalized Market Fear vs Index Trend (`VIX / SPX`)** is Strong Falling: Volatility compressing; steady market trend and low hedging demand.
-- 🟢 **Macro Risk Sentiment / Inflation Hedge (`GLD / SPX`)** is Falling: Risk-on equity dominance; capital favoring productive assets.
-- 🟢 **Cyclical Growth vs Defensive Consumer (`XLY / XLP`)** is Rising: Consumer confidence robust; cyclical discretionary spending.
+- **Normalized Market Fear vs Index Trend (`VIX / SPX`)** is Strong Falling: Volatility compressing; steady market trend and low hedging demand.
+- **Market Breadth (Equal vs Cap Weight) (`RSP / SPY`)** is Falling: Mega-cap concentration; narrow leadership / breadth divergence.
+- **Macro Risk Sentiment / Inflation Hedge (`GLD / SPX`)** is Falling: Risk-on equity dominance; capital favoring productive assets.
 
 **Key Macro Headwinds (Risk Factors):**
-- 🔴 **Small Cap Strength / Economic Sentiment (`IWM / SPY`)** is Strong Falling: Small-cap lag; tight credit conditions and large-cap refuge.
-- 🔴 **Macro Valuation (S&P to US GDP Ratio) (`SPX / GDP`)** is Strong Rising: Equity market valuation expanding relative to GDP.
-- 🔴 **Market Breadth (Equal vs Cap Weight) (`RSP / SPY`)** is Rising: Broad market participation expanding beyond Mega-Caps.
-- 🔴 **Speculative Appetite vs Capital Preservation (`SPHB / SPLV`)** is Falling: Defensive capital preservation; flight to low-volatility.
+- **Tech Momentum vs Broad Market (`NDX / SPX`)** is Falling: Tech lagging; defensive/value rotation underway.
+- **Cyclical Growth vs Defensive Consumer (`XLY / XLP`)** is Falling: Consumer caution; defensive staple rotation and slowdown watch.
+- **Small Cap Strength / Economic Sentiment (`IWM / SPY`)** is Strong Falling: Small-cap lag; tight credit conditions and large-cap refuge.
+- **Speculative Appetite vs Capital Preservation (`SPHB / SPLV`)** is Falling: Defensive capital preservation; flight to low-volatility.
 
 ## 3. Strategic Options Playbook
 
-### Strategy: **Cash-Secured Puts (CSP) / Bull Put Spread**
-*Macro alignment is favorable and elevated implied volatility inflates put option premium.*
+### Strategy: **Iron Condor / Range Premium Harvest**
+*Macro regime is range-bound. Harvest elevated implied volatility across both wings.*
 
 | Execution Parameter | Tactical Specification | Target / Rationale |
 | :--- | :--- | :--- |
-| **Target Delta** | `0.20 - 0.28 Delta (~75-80% Probability of Profit)` | Statistical probability of profit |
-| **Strike Selection** | `$306.31 (~15.8% OTM, below support)` | Anchored relative to technical support & resistance |
-| **Target DTE** | `30 - 45 DTE (optimal theta decay curve)` | Optimal theta decay horizon |
-| **Target Return** | `18.5% - 28.0% ROC (on cash collateral)` | Expected annualized return |
-| **Profit Target** | `50% - 65% of max credit` | Defined-risk exit threshold |
-| **Stop Loss Rule** | `200% - 250% of credit received or breach of 200-MA` | Strict risk-defined exit criteria |
+| **Target Delta** | `Short 0.15 Delta Call / Short 0.15 Delta Put` | Statistical probability of profit |
+| **Strike Selection** | `Short Put: $209.03 | Short Call: $255.48` | Anchored relative to technical support & resistance |
+| **Target DTE** | `30 - 45 DTE` | Optimal theta decay horizon |
+| **Target Return** | `15.0% - 22.0% ROC` | Expected annualized return |
+| **Profit Target** | `50% of total credit` | Defined-risk exit threshold |
+| **Stop Loss Rule** | `150% of credit per tested wing` | Strict risk-defined exit criteria |
 
 ### Key Risk Considerations
-- 🔴 Small Cap Strength / Economic Sentiment (IWM / SPY) is Strong Falling: Small-cap lag; tight credit conditions and large-cap refuge.
-- 🔴 Macro Valuation (S&P to US GDP Ratio) (SPX / GDP) is Strong Rising: Equity market valuation expanding relative to GDP.
+- Tech Momentum vs Broad Market (NDX / SPX) is Falling: Tech lagging; defensive/value rotation underway.
+- Cyclical Growth vs Defensive Consumer (XLY / XLP) is Falling: Consumer caution; defensive staple rotation and slowdown watch.
+- Elevated 30-day volatility (45.6%) indicates high realized turbulence.
 
 ---
 *Disclaimer: Macro Flow Stock Navigator is an analytical decision-support tool. Not personalized financial or investment advice. Always evaluate position sizing and liquidity before executing trades.*

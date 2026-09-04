@@ -2,7 +2,6 @@
 Decision Engine & Alignment Matrix.
 Evaluates macro indicator conditions against stock archetypes, determines market regimes,
 and outputs stock signals and tactical option playbooks.
-Uses clean red, yellow, green status circles in a concise, business-like format.
 """
 
 from typing import Dict, List, Any, Tuple
@@ -97,10 +96,10 @@ class AlignmentDecisionEngine:
                 }
 
                 if impact > 0.3:
-                    force_item["status"] = "🟢 Tailwind"
+                    force_item["status"] = "Tailwind"
                     favorable_forces.append(force_item)
                 elif impact < -0.3:
-                    force_item["status"] = "🔴 Headwind"
+                    force_item["status"] = "Headwind"
                     hostile_forces.append(force_item)
 
         # Normalize score to -100 to +100
@@ -128,31 +127,31 @@ class AlignmentDecisionEngine:
         if "Rising" in gld_trend and "Falling" in sphb_trend:
             return {
                 "name": "Risk-Off Defensive Flight",
-                "badge": "🔴 Defensive Flight",
+                "badge": "Defensive Flight",
                 "summary": "Capital is rotating into defensive assets, gold, and low-volatility shelters."
             }
         elif "Rising" in ndx_trend and "Falling" in rsp_trend:
             return {
                 "name": "Mega-Cap Tech Leadership (Narrow Concentration)",
-                "badge": "🟢 Mega-Cap Tech Dominance",
+                "badge": "Mega-Cap Tech Dominance",
                 "summary": "Nasdaq and mega-cap leaders driving performance while broad equal-weight breadth lags."
             }
         elif "Rising" in rsp_trend and "Rising" in sphb_trend:
             return {
                 "name": "Broad Market Risk-On Expansion",
-                "badge": "🟢 Broad Risk-On Expansion",
+                "badge": "Broad Risk-On Expansion",
                 "summary": "Healthy market breadth with broad participation across cyclicals and high-beta growth."
             }
         elif "Rising" in vix_trend and "Falling" in ndx_trend:
             return {
                 "name": "Market De-Risking / Volatility Expansion",
-                "badge": "🔴 Volatility Expansion",
+                "badge": "Volatility Expansion",
                 "summary": "Fear index is elevating; option premiums are expanding as market hedges downside."
             }
         else:
             return {
                 "name": "Consolidation / Sector Rotation",
-                "badge": "🟡 Balanced Rotation",
+                "badge": "Balanced Rotation",
                 "summary": "Cross-current rotation between sectors; market breadth is mixed."
             }
 
@@ -170,17 +169,17 @@ class AlignmentDecisionEngine:
 
         if score >= ALIGNMENT_THRESHOLDS["STRONG_BUY"]:
             if diff_ma50 >= -2.0 and rsi < 72:
-                return "STRONG BUY", "🟢 STRONG BUY", "High"
+                return "STRONG BUY", "STRONG BUY", "High"
             else:
-                return "ACCUMULATE / BUY ON DIPS", "🟢 BUY ON DIPS", "Medium"
+                return "ACCUMULATE / BUY ON DIPS", "BUY ON DIPS", "Medium"
         elif score >= ALIGNMENT_THRESHOLDS["ACCUMULATE"]:
-            return "ACCUMULATE / BUY", "🟢 ACCUMULATE", "Medium-High"
+            return "ACCUMULATE / BUY", "ACCUMULATE", "Medium-High"
         elif score >= ALIGNMENT_THRESHOLDS["NEUTRAL_LOW"]:
-            return "NEUTRAL / RANGING", "🟡 NEUTRAL (RANGING)", "Moderate"
+            return "NEUTRAL / RANGING", "NEUTRAL (RANGING)", "Moderate"
         elif score >= ALIGNMENT_THRESHOLDS["REDUCE"]:
-            return "REDUCE / TIGHTEN STOPS", "🔴 REDUCE / TRIM", "Medium"
+            return "REDUCE / TIGHTEN STOPS", "REDUCE / TRIM", "Medium"
         else:
-            return "SELL / PROTECT / AVOID", "🔴 PROTECT / SELL", "High"
+            return "SELL / PROTECT / AVOID", "PROTECT / SELL", "High"
 
     @classmethod
     def _build_options_playbook(
@@ -306,17 +305,17 @@ class AlignmentDecisionEngine:
     @staticmethod
     def _format_gauge(score: float) -> str:
         """
-        Creates a clean visual gauge with status circle.
+        Creates a clean visual gauge.
         """
         normalized = int(np.clip((score + 100.0) / 20.0, 0, 10))
         filled = "█" * normalized
         empty = "░" * (10 - normalized)
         
         if score >= 20:
-            color_badge = "🟢 Bullish"
+            color_badge = "Bullish"
         elif score <= -20:
-            color_badge = "🔴 Bearish"
+            color_badge = "Bearish"
         else:
-            color_badge = "🟡 Neutral"
+            color_badge = "Neutral"
 
         return f"[{filled}{empty}] {score:+.1f}/100 ({color_badge})"

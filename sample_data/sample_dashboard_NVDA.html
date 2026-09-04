@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macro Flow Stock Navigator: NVDA</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-body: #0a0e17;
+            --bg-card: #121824;
+            --bg-card-hover: #1a2233;
+            --bg-input: #1b2333;
+            --border-color: #243046;
+            --border-focus: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            --header-bg: #0f1522;
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #f1f5f9;
+            --border-color: #cbd5e1;
+            --border-focus: #2563eb;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-blue: #2563eb;
+            --accent-cyan: #0891b2;
+            --accent-green: #059669;
+            --accent-red: #dc2626;
+            --accent-amber: #d97706;
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --header-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.5;
+            padding-bottom: 40px;
+        }
+
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        /* Header Navigation */
+        header {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-toggle-btn {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--accent-blue);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* Executive Banner */
+        .executive-banner {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ticker-profile {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .ticker-symbol {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .ticker-price {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .ticker-change {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .ticker-change.positive {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+
+        .ticker-change.negative {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .banner-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .metric-pill {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .metric-pill .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .metric-pill .val {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-signal-buy {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+
+        .badge-signal-sell {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+
+        .badge-signal-neutral {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--accent-amber);
+            border: 1px solid var(--accent-amber);
+        }
+
+        .trend-bullish {
+            background-color: rgba(16, 185, 129, 0.12);
+            color: var(--accent-green);
+        }
+
+        .trend-bearish {
+            background-color: rgba(239, 68, 68, 0.12);
+            color: var(--accent-red);
+        }
+
+        .trend-neutral {
+            background-color: rgba(148, 163, 184, 0.12);
+            color: var(--text-secondary);
+        }
+
+        /* Tabs Navigation */
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 10px 18px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Indicator Card */
+        .ind-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .ind-card:hover {
+            background-color: var(--bg-card-hover);
+        }
+
+        .ind-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .ind-card-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .ind-card-ratio {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: ui-monospace, monospace;
+        }
+
+        .ind-metric-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .ind-meaning {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* Progress Bar */
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background-color: var(--bg-input);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--accent-blue);
+            border-radius: 3px;
+        }
+
+        /* Table Styles */
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: var(--bg-input);
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover td {
+            background-color: var(--bg-card-hover);
+        }
+
+        /* Tactical Playbook Box */
+        .playbook-hero {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .playbook-strategy-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .playbook-rationale {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .tactical-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .tactical-cell {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            border-radius: 6px;
+        }
+
+        .tactical-cell .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tactical-cell .val {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 4px;
+        }
+
+        /* Interactive Simulator */
+        .simulator-box {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .slider-control {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .slider-control input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--accent-blue);
+            height: 6px;
+        }
+
+        /* Filters */
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .filter-btn {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .filter-btn.active {
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            border-color: var(--accent-blue);
+        }
+
+        /* Forces Lists */
+        .force-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .force-item:last-child {
+            border-bottom: none;
+        }
+
+        .force-tag {
+            font-weight: 700;
+            min-width: 90px;
+        }
+
+        .force-desc {
+            color: var(--text-secondary);
+        }
+
+        /* Chart Canvas Containers */
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <div>
+                <div class="brand-title">Macro Flow Stock Navigator</div>
+                <div class="brand-subtitle">Real-Time Cross-Asset Alignment & Options Decision Engine</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
+                <span id="themeLabel">Theme: Dark</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Executive Banner -->
+        <div class="executive-banner">
+            <div>
+                <div class="ticker-profile">
+                    <span class="ticker-symbol">NVDA</span>
+                    <span class="ticker-price">$231.97</span>
+                    <span class="ticker-change positive">+1.54%</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                    Mega-Cap Tech / High Quality Growth &bull; Consolidation / Sector Rotation
+                </div>
+            </div>
+
+            <div class="banner-metrics">
+                <div class="metric-pill">
+                    <span class="label">Action Signal</span>
+                    <span class="badge badge-signal-neutral">
+                        NEUTRAL (RANGING)
+                    </span>
+                </div>
+
+                <div class="metric-pill">
+                    <span class="label">Macro Alignment</span>
+                    <span class="val font-mono" style="color: var(--accent-amber);">
+                        -7.5 / 100
+                    </span>
+                </div>
+
+                <div class="metric-pill">
+                    <span class="label">Conviction</span>
+                    <span class="val">Moderate</span>
+                </div>
+
+                <div class="metric-pill">
+                    <span class="label">RSI (14)</span>
+                    <span class="val font-mono">54.7</span>
+                </div>
+
+                <div class="metric-pill">
+                    <span class="label">30d Volatility</span>
+                    <span class="val font-mono">45.5%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('overview')">Executive Overview</button>
+            <button class="tab-btn" onclick="switchTab('indicators')">8 Macro Indicators</button>
+            <button class="tab-btn" onclick="switchTab('charts')">Trend & Factor Charts</button>
+            <button class="tab-btn" onclick="switchTab('playbook')">Options Playbook & Simulator</button>
+        </div>
+
+        <!-- TAB 1: EXECUTIVE OVERVIEW -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="grid-2">
+                
+                <!-- Archetype & Regime Alignment Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Archetype Alignment Matrix</div>
+                            <div class="card-desc">Mega-Cap Tech / High Quality Growth</div>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
+                        Dominant market leaders with strong balance sheets, high free cash flow, and secular AI/cloud tailwinds.
+                    </p>
+                    <div style="background-color: var(--bg-input); padding: 14px; border-radius: 6px; margin-bottom: 16px;">
+                        <div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">Macro Regime Context: Consolidation / Sector Rotation</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Cross-current rotation between sectors; market breadth is mixed.</div>
+                    </div>
+                    <div class="tactical-grid">
+                        <div class="tactical-cell">
+                            <div class="label">50-Day MA</div>
+                            <div class="val font-mono">$210.60 (+10.15%)</div>
+                        </div>
+                        <div class="tactical-cell">
+                            <div class="label">200-Day MA</div>
+                            <div class="val font-mono">$196.69 (+17.94%)</div>
+                        </div>
+                        <div class="tactical-cell">
+                            <div class="label">Beta (vs SPY)</div>
+                            <div class="val font-mono">1.92</div>
+                        </div>
+                        <div class="tactical-cell">
+                            <div class="label">30d Realized Vol</div>
+                            <div class="val font-mono">45.5%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tailwinds vs Headwinds Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Macro Drivers & Sensitivity Forces</div>
+                            <div class="card-desc">Active tailwinds and risk factors impacting NVDA</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-green); text-transform: uppercase; margin-bottom: 8px;">
+                            Active Macro Tailwinds
+                        </div>
+                        <div id="tailwindsList">
+                            <div class="force-item"><span class="force-tag" style="color: var(--accent-green);">Normalized Market Fear vs Index Trend</span><span class="force-desc">Volatility compressing; steady market trend and low hedging demand (Strong Falling)</span></div><div class="force-item"><span class="force-tag" style="color: var(--accent-green);">Market Breadth (Equal vs Cap Weight)</span><span class="force-desc">Mega-cap concentration; narrow leadership / breadth divergence (Falling)</span></div><div class="force-item"><span class="force-tag" style="color: var(--accent-green);">Macro Risk Sentiment / Inflation Hedge</span><span class="force-desc">Risk-on equity dominance; capital favoring productive assets (Falling)</span></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-red); text-transform: uppercase; margin-bottom: 8px;">
+                            Active Macro Headwinds
+                        </div>
+                        <div id="headwindsList">
+                            <div class="force-item"><span class="force-tag" style="color: var(--accent-red);">Tech Momentum vs Broad Market</span><span class="force-desc">Tech lagging; defensive/value rotation underway (Falling)</span></div><div class="force-item"><span class="force-tag" style="color: var(--accent-red);">Cyclical Growth vs Defensive Consumer</span><span class="force-desc">Consumer caution; defensive staple rotation and slowdown watch (Falling)</span></div><div class="force-item"><span class="force-tag" style="color: var(--accent-red);">Small Cap Strength / Economic Sentiment</span><span class="force-desc">Small-cap lag; tight credit conditions and large-cap refuge (Strong Falling)</span></div><div class="force-item"><span class="force-tag" style="color: var(--accent-red);">Speculative Appetite vs Capital Preservation</span><span class="force-desc">Defensive capital preservation; flight to low-volatility (Falling)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Quick Playbook Summary -->
+            <div class="playbook-hero">
+                <div style="font-size: 12px; color: var(--accent-blue); font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">
+                    Recommended Options Strategy
+                </div>
+                <div class="playbook-strategy-name">Iron Condor / Range Premium Harvest</div>
+                <div class="playbook-rationale">Macro regime is range-bound. Harvest elevated implied volatility across both wings.</div>
+                <div class="tactical-grid">
+                    <div class="tactical-cell">
+                        <div class="label">Target Strike</div>
+                        <div class="val font-mono">Short Put: $208.77 | Short Call: $255.17</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Target Delta</div>
+                        <div class="val font-mono">Short 0.15 Delta Call / Short 0.15 Delta Put</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Target DTE</div>
+                        <div class="val font-mono">30 - 45 DTE</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Est. Annualized Yield</div>
+                        <div class="val font-mono">15.0% - 22.0% ROC</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: 8 MACRO INDICATORS -->
+        <div id="tab-indicators" class="tab-content">
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="filterIndicators('all', this)">All (8)</button>
+                <button class="filter-btn" onclick="filterIndicators('trend-bullish', this)">Bullish Signals</button>
+                <button class="filter-btn" onclick="filterIndicators('trend-bearish', this)">Bearish Signals</button>
+                <button class="filter-btn" onclick="filterIndicators('trend-neutral', this)">Neutral Signals</button>
+            </div>
+
+            <div class="grid-4" id="indicatorsGrid">
+                
+            <div class="ind-card" data-trend="trend-bearish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Market Breadth (Equal vs Cap Weight)</div>
+                        <div class="ind-card-ratio">RSP / SPY</div>
+                    </div>
+                    <span class="badge trend-bearish">Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">0.2848</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">At MA (-0.71%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">49.0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 49.0%;"></div>
+                    </div>
+                    <div class="ind-meaning">Mega-cap concentration; narrow leadership / breadth divergence</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bullish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Macro Risk Sentiment / Inflation Hedge</div>
+                        <div class="ind-card-ratio">GLD / SPX</div>
+                    </div>
+                    <span class="badge trend-bullish">Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">0.0529</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">Above (+3.23%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">26.9%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 26.9%;"></div>
+                    </div>
+                    <div class="ind-meaning">Risk-on equity dominance; capital favoring productive assets</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bearish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Tech Momentum vs Broad Market</div>
+                        <div class="ind-card-ratio">NDX / SPX</div>
+                    </div>
+                    <span class="badge trend-bearish">Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">0.0931</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">At MA (-0.65%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">73.5%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 73.5%;"></div>
+                    </div>
+                    <div class="ind-meaning">Tech lagging; defensive/value rotation underway</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bearish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Small Cap Strength / Economic Sentiment</div>
+                        <div class="ind-card-ratio">IWM / SPY</div>
+                    </div>
+                    <span class="badge trend-bearish">Strong Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">0.3840</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">Below (-2.16%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">60.5%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 60.5%;"></div>
+                    </div>
+                    <div class="ind-meaning">Small-cap lag; tight credit conditions and large-cap refuge</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bullish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Macro Valuation (S&P to US GDP Ratio)</div>
+                        <div class="ind-card-ratio">SPX / GDP</div>
+                    </div>
+                    <span class="badge trend-bullish">Flat / Neutral</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">222.1000</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">Above (+1.54%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">94.5%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 94.5%;"></div>
+                    </div>
+                    <div class="ind-meaning">Consolidating / Neutral Transition</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bullish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Speculative Appetite vs Capital Preservation</div>
+                        <div class="ind-card-ratio">SPHB / SPLV</div>
+                    </div>
+                    <span class="badge trend-bullish">Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">1.9646</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">Above (+1.89%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">86.6%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 86.6%;"></div>
+                    </div>
+                    <div class="ind-meaning">Defensive capital preservation; flight to low-volatility</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bearish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Cyclical Growth vs Defensive Consumer</div>
+                        <div class="ind-card-ratio">XLY / XLP</div>
+                    </div>
+                    <span class="badge trend-bearish">Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">1.3478</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">Below (-1.41%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">17.8%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 17.8%;"></div>
+                    </div>
+                    <div class="ind-meaning">Consumer caution; defensive staple rotation and slowdown watch</div>
+                </div>
+            </div>
+            
+
+            <div class="ind-card" data-trend="trend-bearish">
+                <div class="ind-card-header">
+                    <div>
+                        <div class="ind-card-title">Normalized Market Fear vs Index Trend</div>
+                        <div class="ind-card-ratio">VIX / SPX</div>
+                    </div>
+                    <span class="badge trend-bearish">Strong Falling</span>
+                </div>
+                <div class="ind-card-body">
+                    <div class="ind-metric-row">
+                        <span class="label">Current Value</span>
+                        <span class="val font-mono">0.1836</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">50-MA Status</span>
+                        <span class="val">Below (-14.07%)</span>
+                    </div>
+                    <div class="ind-metric-row">
+                        <span class="label">90d Percentile</span>
+                        <span class="val">0.4%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" style="width: 0.4%;"></div>
+                    </div>
+                    <div class="ind-meaning">Volatility compressing; steady market trend and low hedging demand</div>
+                </div>
+            </div>
+            
+            </div>
+        </div>
+
+        <!-- TAB 3: CHARTS & TRENDS -->
+        <div id="tab-charts" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">NVDA Price Trend & Moving Averages</div>
+                            <div class="card-desc">Daily Close vs 50-MA & 200-MA</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Macro Indicators Percentile Radar</div>
+                            <div class="card-desc">90-Day Cross-Asset Percentile Distribution</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="macroRadarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: OPTIONS PLAYBOOK & SIMULATOR -->
+        <div id="tab-playbook" class="tab-content">
+            <div class="playbook-hero">
+                <div style="font-size: 12px; color: var(--accent-blue); font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">
+                    Strategic Options Specification
+                </div>
+                <div class="playbook-strategy-name">Iron Condor / Range Premium Harvest</div>
+                <div class="playbook-rationale">Macro regime is range-bound. Harvest elevated implied volatility across both wings.</div>
+                
+                <div class="tactical-grid" style="margin-top: 16px;">
+                    <div class="tactical-cell">
+                        <div class="label">Target Strike</div>
+                        <div class="val font-mono">Short Put: $208.77 | Short Call: $255.17</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Target Delta</div>
+                        <div class="val font-mono">Short 0.15 Delta Call / Short 0.15 Delta Put</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Target DTE</div>
+                        <div class="val font-mono">30 - 45 DTE</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Target Return</div>
+                        <div class="val font-mono">15.0% - 22.0% ROC</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Profit Target</div>
+                        <div class="val font-mono">50% of total credit</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Stop Loss Rule</div>
+                        <div class="val font-mono">150% of credit per tested wing</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Payoff Simulator -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Interactive Strategy Payoff Simulator</div>
+                        <div class="card-desc">Simulate trade performance at expiration based on simulated price changes</div>
+                    </div>
+                </div>
+
+                <div class="slider-control">
+                    <label for="priceSlider" style="font-weight: 600; min-width: 140px;">Simulated Price:</label>
+                    <input type="range" id="priceSlider" min="162.4" max="301.6" step="0.5" value="232.0" oninput="updateSimPayoff()">
+                    <span id="sliderPriceDisplay" class="font-mono" style="font-size: 16px; font-weight: 700; min-width: 80px;">$231.97</span>
+                </div>
+
+                <div class="tactical-grid" style="margin-bottom: 20px;">
+                    <div class="tactical-cell">
+                        <div class="label">Simulated Move</div>
+                        <div id="simPriceMove" class="val font-mono">0.0%</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Simulated P&L Status</div>
+                        <div id="simPnLStatus" class="val font-mono">Max Profit</div>
+                    </div>
+                    <div class="tactical-cell">
+                        <div class="label">Breakeven Price</div>
+                        <div id="simBreakeven" class="val font-mono">$220.37</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="payoffChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Risk Warnings -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <div class="card-title">Risk Considerations & Trade Management</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 13px; color: var(--text-secondary);">&bull; Tech Momentum vs Broad Market (NDX / SPX) is Falling: Tech lagging; defensive/value rotation underway.</div><div style="font-size: 13px; color: var(--text-secondary);">&bull; Cyclical Growth vs Defensive Consumer (XLY / XLP) is Falling: Consumer caution; defensive staple rotation and slowdown watch.</div><div style="font-size: 13px; color: var(--text-secondary);">&bull; Elevated 30-day volatility (45.5%) indicates high realized turbulence.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        Macro Flow Stock Navigator &bull; Analytical decision-support tool &bull; Real-time public market data feeds
+    </footer>
+
+    <script>
+        // Global Datasets
+        const CURRENT_PRICE = 231.97;
+        const TICKER_INFO = {"ticker": "NVDA", "current_price": 231.97, "change_pct": 1.54, "ma50": 210.6, "diff_ma50_pct": 10.15, "ma200": 196.69, "diff_ma200_pct": 17.94, "rsi_14": 54.7, "historical_vol_30d": 45.5, "beta": 1.92, "archetype_key": "MEGA_CAP_TECH", "archetype_name": "Mega-Cap Tech / High Quality Growth", "archetype_desc": "Dominant market leaders with strong balance sheets, high free cash flow, and secular AI/cloud tailwinds.", "price_history": {"dates": ["2026-06-11", "2026-06-12", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04"], "prices": [204.87, 205.19, 212.45, 207.41, 204.65, 210.69, 208.65, 200.04, 199.0, 195.74, 192.53, 194.97, 200.09, 197.58, 194.83, 195.55, 196.93, 204.12, 202.78, 210.96, 203.53, 211.8, 212.5, 207.4, 202.81, 203.28, 207.29, 212.06, 208.76, 206.84, 196.51, 197.01, 190.01, 195.04, 200.75, 206.64, 211.94, 219.22, 218.99, 223.96, 217.55, 217.5, 224.09, 225.3, 225.16, 225.01, 219.74, 217.56, 216.85, 214.72, 208.48, 213.05, 209.66, 227.98, 217.55, 220.78, 217.44, 224.41, 228.45, 231.97], "ma50": [206.32, 206.91, 207.61, 208.21, 208.74, 209.31, 209.81, 210.03, 210.23, 210.21, 210.09, 210.02, 209.99, 209.9, 209.8, 209.66, 209.6, 209.52, 209.24, 209.2, 209.08, 209.33, 209.61, 209.79, 209.91, 209.82, 209.74, 209.68, 209.46, 209.18, 208.6, 207.82, 207.12, 206.57, 206.17, 205.84, 205.69, 205.76, 205.85, 206.07, 206.14, 206.27, 206.26, 206.31, 206.52, 206.65, 206.94, 207.12, 207.29, 207.58, 207.65, 207.81, 207.75, 208.16, 208.42, 208.62, 208.8, 209.28, 209.87, 210.6], "ma200": [189.53, 189.61, 189.73, 189.82, 189.89, 190.0, 190.09, 190.23, 190.39, 190.53, 190.64, 190.73, 190.84, 190.94, 191.03, 191.13, 191.26, 191.4, 191.53, 191.67, 191.8, 191.97, 192.14, 192.29, 192.4, 192.48, 192.58, 192.69, 192.8, 192.91, 192.96, 193.0, 192.99, 193.05, 193.11, 193.25, 193.41, 193.59, 193.77, 193.98, 194.16, 194.35, 194.56, 194.75, 194.92, 195.04, 195.1, 195.18, 195.25, 195.29, 195.34, 195.43, 195.53, 195.73, 195.83, 195.96, 196.08, 196.27, 196.46, 196.69]}};
+        const INDICATORS_DATA = {"RSP_SPY": {"id": "RSP_SPY", "display_name": "Market Breadth (Equal vs Cap Weight)", "ratio_tickers": "RSP / SPY", "current_value": 0.2848, "ma50": 0.2869, "diff_ma50_pct": -0.71, "ma50_status": "At MA (-0.71%)", "slope_pct": -0.087, "trend_signal": "Falling", "percentile_90d": 49.0, "raw_sentiment_score": -1.5, "market_meaning": "Mega-cap concentration; narrow leadership / breadth divergence", "history": [0.2911417890338552, 0.29383420180009473, 0.2957392992478835, 0.2903908697351325, 0.2878197476334508, 0.28654956050449243, 0.2855198045558324, 0.28544148663849456, 0.2844020018286087, 0.28462612000923193, 0.2848789734869791, 0.28640210125185595, 0.2861914129967931, 0.2863295036888026, 0.28694901276027346, 0.28574941199936016, 0.2863899795298213, 0.28875511407326776, 0.28885392844400043, 0.28949225128005485, 0.29068594861876845, 0.2895510073618166, 0.2899305498844556, 0.2871871403963779, 0.28685255013276445, 0.286017864390949, 0.2856336317174484, 0.2856918994405164, 0.28460753510309, 0.2848460304594548]}, "GLD_SPX": {"id": "GLD_SPX", "display_name": "Macro Risk Sentiment / Inflation Hedge", "ratio_tickers": "GLD / SPX", "current_value": 0.0529, "ma50": 0.0512, "diff_ma50_pct": 3.23, "ma50_status": "Above (+3.23%)", "slope_pct": -0.125, "trend_signal": "Falling", "percentile_90d": 26.9, "raw_sentiment_score": -0.5, "market_meaning": "Risk-on equity dominance; capital favoring productive assets", "history": [0.050535667014640115, 0.04972148936965945, 0.05072066476568353, 0.05070970317220038, 0.04960666058106857, 0.048905991902516696, 0.048362830150703785, 0.050448307384767695, 0.050541120239533915, 0.051364847324465356, 0.05191981226157422, 0.051882712833743405, 0.05225785809224164, 0.051155339276694224, 0.051565938723014196, 0.052354660540618034, 0.051815189233303395, 0.05368981203720297, 0.05434515194999123, 0.05516543753908956, 0.05575562731635571, 0.05575803139959508, 0.05489010730011525, 0.05466311472293304, 0.05302162244097071, 0.05313720621311633, 0.05198867175400792, 0.05253697775398908, 0.052947258388472904, 0.052862316687705205]}, "NDX_SPX": {"id": "NDX_SPX", "display_name": "Tech Momentum vs Broad Market", "ratio_tickers": "NDX / SPX", "current_value": 0.0931, "ma50": 0.0937, "diff_ma50_pct": -0.65, "ma50_status": "At MA (-0.65%)", "slope_pct": -0.052, "trend_signal": "Falling", "percentile_90d": 73.5, "raw_sentiment_score": -1.5, "market_meaning": "Tech lagging; defensive/value rotation underway", "history": [0.09201449026500981, 0.09092879446825161, 0.09044784337411715, 0.09190427576566743, 0.09185790263177779, 0.09210841488378643, 0.09356273541056448, 0.09287180194754906, 0.09269179451447682, 0.09320231623978051, 0.09297817363987447, 0.09296472581582493, 0.09339872390876057, 0.09386728093305348, 0.09389835152016565, 0.09423684123757564, 0.09328294585749106, 0.09290112570405201, 0.09303953563835253, 0.09296398160985067, 0.09229490934665777, 0.09257445222685215, 0.09267818922260884, 0.09327524204405614, 0.09290097389564081, 0.09325357032478115, 0.09272656443997221, 0.09251036720321387, 0.0926299495629694, 0.09305584334377057]}, "IWM_SPY": {"id": "IWM_SPY", "display_name": "Small Cap Strength / Economic Sentiment", "ratio_tickers": "IWM / SPY", "current_value": 0.384, "ma50": 0.3925, "diff_ma50_pct": -2.16, "ma50_status": "Below (-2.16%)", "slope_pct": -0.235, "trend_signal": "Strong Falling", "percentile_90d": 60.5, "raw_sentiment_score": -2.0, "market_meaning": "Small-cap lag; tight credit conditions and large-cap refuge", "history": [0.39631167113473825, 0.39598574753362303, 0.3955939991664626, 0.39449095359891323, 0.3898103165693575, 0.39096177478609256, 0.3911555167960425, 0.38941789003522687, 0.3880633925099152, 0.38998524914019095, 0.3880573840827128, 0.39061201098943316, 0.3918626717263162, 0.39016300469854887, 0.3929850140197515, 0.3935185839799201, 0.3912046468315601, 0.39232309855996045, 0.3903357237836548, 0.3917358863967448, 0.3902838522205199, 0.3906856177336417, 0.3902072707905179, 0.38880820522757303, 0.3844154278093745, 0.38319535539203303, 0.3814355800222482, 0.38424645836784954, 0.3817918555636786, 0.3839938489151691]}, "SPX_GDP": {"id": "SPX_GDP", "display_name": "Macro Valuation (S&P to US GDP Ratio)", "ratio_tickers": "SPX / GDP", "current_value": 222.1, "ma50": 218.74, "diff_ma50_pct": 1.54, "ma50_status": "Above (+1.54%)", "slope_pct": 0.002, "trend_signal": "Flat / Neutral", "percentile_90d": 94.5, "raw_sentiment_score": 0.5, "market_meaning": "Consolidating / Neutral Transition", "history": [213.60010675979873, 214.04958702992585, 210.80431922007415, 214.30458984375002, 215.80549771583688, 218.99745762711865, 222.91667852886656, 222.54296047404662, 222.1513887049788, 223.52522427833685, 223.39469097590046, 222.6769547801907, 223.2618644067797, 224.71666777012715, 224.33545087394072, 223.16274745100637, 221.62697629766953, 222.09433842028602, 220.16902145127122, 221.12591863082628, 220.50613165386656, 221.20975652145128, 221.1642429157839, 222.7573457362288, 222.2032474841102, 221.46505478681146, 219.88981974973515, 220.90203671212927, 223.23910056938564, 222.0966457560911]}, "SPHB_SPLV": {"id": "SPHB_SPLV", "display_name": "Speculative Appetite vs Capital Preservation", "ratio_tickers": "SPHB / SPLV", "current_value": 1.9646, "ma50": 1.9282, "diff_ma50_pct": 1.89, "ma50_status": "Above (+1.89%)", "slope_pct": -0.053, "trend_signal": "Falling", "percentile_90d": 86.6, "raw_sentiment_score": -0.5, "market_meaning": "Defensive capital preservation; flight to low-volatility", "history": [1.8291893002732829, 1.7829934859042609, 1.7363940907909745, 1.8300602750158097, 1.8345795611301832, 1.8817741160599006, 1.9503862636940092, 1.9444516521491944, 1.909126570411176, 1.9406901413625413, 1.9387054217079966, 1.950561726137115, 1.9785016501005899, 1.9876688652759877, 1.985201612443946, 2.001848420829114, 1.9267395481407477, 1.955514546808663, 1.935236466850353, 1.971982463434421, 1.9159321245880794, 1.9566367159470688, 1.9608592339456188, 1.9906814139851305, 1.947522611277074, 1.9587628634304715, 1.9211161146955709, 1.9330297380826738, 1.943779959494444, 1.9645724988583344]}, "XLY_XLP": {"id": "XLY_XLP", "display_name": "Cyclical Growth vs Defensive Consumer", "ratio_tickers": "XLY / XLP", "current_value": 1.3478, "ma50": 1.3671, "diff_ma50_pct": -1.41, "ma50_status": "Below (-1.41%)", "slope_pct": -0.105, "trend_signal": "Falling", "percentile_90d": 17.8, "raw_sentiment_score": -1.5, "market_meaning": "Consumer caution; defensive staple rotation and slowdown watch", "history": [1.2985004164169267, 1.2919826155661387, 1.2775869943976002, 1.314964289042558, 1.3649616951482435, 1.3930002148745322, 1.3856155219611181, 1.3903667742155261, 1.3876159984395195, 1.408129660982236, 1.4087110355266654, 1.4079583708391918, 1.3856370104897895, 1.3773255459097928, 1.3729817862266425, 1.3787198816632982, 1.3596634508148333, 1.370348914759634, 1.3675574393169385, 1.3724851677521925, 1.3527730952555024, 1.3632686260361122, 1.3580619939843899, 1.3620121621943961, 1.3716793829199057, 1.3719697779745728, 1.3441641799166055, 1.3429206389531039, 1.3659394342776356, 1.3478439185437951]}, "VIX_SPX": {"id": "VIX_SPX", "display_name": "Normalized Market Fear vs Index Trend", "ratio_tickers": "VIX / SPX", "current_value": 0.1836, "ma50": 0.2136, "diff_ma50_pct": -14.07, "ma50_status": "Below (-14.07%)", "slope_pct": -0.453, "trend_signal": "Strong Falling", "percentile_90d": 0.4, "raw_sentiment_score": -2.0, "market_meaning": "Volatility compressing; steady market trend and low hedging demand", "history": [0.2518487293387062, 0.24512772771725988, 0.28238896309100525, 0.2297775019980612, 0.2134926180477056, 0.2086704776880106, 0.21327418475419033, 0.2046986271781591, 0.19649906997296643, 0.192068713628582, 0.19940385613991587, 0.19771744192443663, 0.18777828212860379, 0.18758838868597896, 0.1830264537947259, 0.19612500697820684, 0.20593467080677602, 0.1931764273007004, 0.20952316011576644, 0.19714973194419966, 0.2071121210192115, 0.2012431517623881, 0.19815781819404074, 0.18768617976471774, 0.1871168286322558, 0.19411563946143928, 0.21411339745263544, 0.19826258857445708, 0.18482880447284383, 0.1835740706606765]}};
+        const HISTORY_DATA = {"dates": ["2026-06-11", "2026-06-12", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04"], "prices": [204.87, 205.19, 212.45, 207.41, 204.65, 210.69, 208.65, 200.04, 199.0, 195.74, 192.53, 194.97, 200.09, 197.58, 194.83, 195.55, 196.93, 204.12, 202.78, 210.96, 203.53, 211.8, 212.5, 207.4, 202.81, 203.28, 207.29, 212.06, 208.76, 206.84, 196.51, 197.01, 190.01, 195.04, 200.75, 206.64, 211.94, 219.22, 218.99, 223.96, 217.55, 217.5, 224.09, 225.3, 225.16, 225.01, 219.74, 217.56, 216.85, 214.72, 208.48, 213.05, 209.66, 227.98, 217.55, 220.78, 217.44, 224.41, 228.45, 231.97], "ma50": [206.32, 206.91, 207.61, 208.21, 208.74, 209.31, 209.81, 210.03, 210.23, 210.21, 210.09, 210.02, 209.99, 209.9, 209.8, 209.66, 209.6, 209.52, 209.24, 209.2, 209.08, 209.33, 209.61, 209.79, 209.91, 209.82, 209.74, 209.68, 209.46, 209.18, 208.6, 207.82, 207.12, 206.57, 206.17, 205.84, 205.69, 205.76, 205.85, 206.07, 206.14, 206.27, 206.26, 206.31, 206.52, 206.65, 206.94, 207.12, 207.29, 207.58, 207.65, 207.81, 207.75, 208.16, 208.42, 208.62, 208.8, 209.28, 209.87, 210.6], "ma200": [189.53, 189.61, 189.73, 189.82, 189.89, 190.0, 190.09, 190.23, 190.39, 190.53, 190.64, 190.73, 190.84, 190.94, 191.03, 191.13, 191.26, 191.4, 191.53, 191.67, 191.8, 191.97, 192.14, 192.29, 192.4, 192.48, 192.58, 192.69, 192.8, 192.91, 192.96, 193.0, 192.99, 193.05, 193.11, 193.25, 193.41, 193.59, 193.77, 193.98, 194.16, 194.35, 194.56, 194.75, 194.92, 195.04, 195.1, 195.18, 195.25, 195.29, 195.34, 195.43, 195.53, 195.73, 195.83, 195.96, 196.08, 196.27, 196.46, 196.69]};
+        const DECISION_DATA = {"ticker": "NVDA", "archetype_key": "MEGA_CAP_TECH", "archetype_name": "Mega-Cap Tech / High Quality Growth", "macro_regime": {"name": "Consolidation / Sector Rotation", "badge": "Balanced Rotation", "summary": "Cross-current rotation between sectors; market breadth is mixed."}, "alignment_score": -7.5, "alignment_gauge": "[\u2588\u2588\u2588\u2588\u2591\u2591\u2591\u2591\u2591\u2591] -7.5/100 (Neutral)", "stock_signal": "NEUTRAL / RANGING", "signal_badge": "NEUTRAL (RANGING)", "conviction": "Moderate", "favorable_forces": [{"indicator": "Normalized Market Fear vs Index Trend", "ratio": "VIX / SPX", "trend": "Strong Falling", "impact_score": 3.0, "meaning": "Volatility compressing; steady market trend and low hedging demand", "status": "Tailwind"}, {"indicator": "Market Breadth (Equal vs Cap Weight)", "ratio": "RSP / SPY", "trend": "Falling", "impact_score": 2.25, "meaning": "Mega-cap concentration; narrow leadership / breadth divergence", "status": "Tailwind"}, {"indicator": "Macro Risk Sentiment / Inflation Hedge", "ratio": "GLD / SPX", "trend": "Falling", "impact_score": 0.5, "meaning": "Risk-on equity dominance; capital favoring productive assets", "status": "Tailwind"}], "hostile_forces": [{"indicator": "Tech Momentum vs Broad Market", "ratio": "NDX / SPX", "trend": "Falling", "impact_score": -3.75, "meaning": "Tech lagging; defensive/value rotation underway", "status": "Headwind"}, {"indicator": "Cyclical Growth vs Defensive Consumer", "ratio": "XLY / XLP", "trend": "Falling", "impact_score": -1.5, "meaning": "Consumer caution; defensive staple rotation and slowdown watch", "status": "Headwind"}, {"indicator": "Small Cap Strength / Economic Sentiment", "ratio": "IWM / SPY", "trend": "Strong Falling", "impact_score": -1.0, "meaning": "Small-cap lag; tight credit conditions and large-cap refuge", "status": "Headwind"}, {"indicator": "Speculative Appetite vs Capital Preservation", "ratio": "SPHB / SPLV", "trend": "Falling", "impact_score": -0.75, "meaning": "Defensive capital preservation; flight to low-volatility", "status": "Headwind"}], "options_playbook": {"strategy": "Iron Condor / Range Premium Harvest", "tactical_execution": {"strategy": "Iron Condor / Range Premium Harvest", "rationale": "Macro regime is range-bound. Harvest elevated implied volatility across both wings.", "recommended_delta": "Short 0.15 Delta Call / Short 0.15 Delta Put", "optimal_strike": "Short Put: $208.77 | Short Call: $255.17", "target_dte": "30 - 45 DTE", "estimated_annualized_yield": "15.0% - 22.0% ROC", "profit_target": "50% of total credit", "stop_loss_rule": "150% of credit per tested wing", "ideal_condition": "Macro Alignment is Neutral / Low Trend + IV Rank > 40."}, "risk_warnings": ["Tech Momentum vs Broad Market (NDX / SPX) is Falling: Tech lagging; defensive/value rotation underway.", "Cyclical Growth vs Defensive Consumer (XLY / XLP) is Falling: Consumer caution; defensive staple rotation and slowdown watch.", "Elevated 30-day volatility (45.5%) indicates high realized turbulence."]}};
+        
+        let currentTheme = localStorage.getItem("mf_theme") || "dark";
+        let priceChartInstance = null;
+        let radarChartInstance = null;
+        let payoffChartInstance = null;
+
+        // Theme Toggle
+        function applyTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute("data-theme", theme);
+            document.getElementById("themeLabel").innerText = theme === "dark" ? "Theme: Dark" : "Theme: Light";
+            localStorage.setItem("mf_theme", theme);
+            updateChartTheme();
+        }
+
+        function toggleTheme() {
+            applyTheme(currentTheme === "dark" ? "light" : "dark");
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
+            
+            const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(btn => btn.getAttribute("onclick").includes(tabId));
+            if (activeBtn) activeBtn.classList.add("active");
+            
+            const activeContent = document.getElementById("tab-" + tabId);
+            if (activeContent) activeContent.classList.add("active");
+
+            if (tabId === "charts") {
+                initCharts();
+            } else if (tabId === "playbook") {
+                initPayoffChart();
+            }
+        }
+
+        // Indicator Card Filtering
+        function filterIndicators(filterType, btn) {
+            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            
+            document.querySelectorAll(".ind-card").forEach(card => {
+                if (filterType === "all" || card.getAttribute("data-trend") === filterType) {
+                    card.style.display = "flex";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+        }
+
+        // Initialize Price & Macro Charts
+        function initCharts() {
+            if (typeof Chart === "undefined") return;
+
+            const isDark = currentTheme === "dark";
+            const textColor = isDark ? "#94a3b8" : "#475569";
+            const gridColor = isDark ? "#243046" : "#e2e8f0";
+
+            // 1. Price Chart
+            if (!priceChartInstance && HISTORY_DATA.dates && HISTORY_DATA.dates.length > 0) {
+                const ctxPrice = document.getElementById("priceChart").getContext("2d");
+                priceChartInstance = new Chart(ctxPrice, {
+                    type: "line",
+                    data: {
+                        labels: HISTORY_DATA.dates,
+                        datasets: [
+                            {
+                                label: "Close Price",
+                                data: HISTORY_DATA.prices,
+                                borderColor: "#3b82f6",
+                                backgroundColor: "rgba(59, 130, 246, 0.08)",
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.1
+                            },
+                            {
+                                label: "50-Day MA",
+                                data: HISTORY_DATA.ma50,
+                                borderColor: "#10b981",
+                                borderWidth: 1.5,
+                                borderDash: [4, 4],
+                                fill: false
+                            },
+                            {
+                                label: "200-Day MA",
+                                data: HISTORY_DATA.ma200,
+                                borderColor: "#f59e0b",
+                                borderWidth: 1.5,
+                                borderDash: [6, 6],
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: "index", intersect: false },
+                        scales: {
+                            x: { grid: { color: gridColor }, ticks: { color: textColor, maxTicksLimit: 8 } },
+                            y: { grid: { color: gridColor }, ticks: { color: textColor } }
+                        },
+                        plugins: {
+                            legend: { labels: { color: textColor } }
+                        }
+                    }
+                });
+            }
+
+            // 2. Macro Radar Chart
+            if (!radarChartInstance) {
+                const ctxRadar = document.getElementById("macroRadarChart").getContext("2d");
+                const labels = [];
+                const percentiles = [];
+                for (const k in INDICATORS_DATA) {
+                    labels.push(INDICATORS_DATA[k].display_name);
+                    percentiles.push(INDICATORS_DATA[k].percentile_90d);
+                }
+
+                radarChartInstance = new Chart(ctxRadar, {
+                    type: "radar",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: "90-Day Percentile",
+                            data: percentiles,
+                            backgroundColor: "rgba(6, 182, 212, 0.2)",
+                            borderColor: "#06b6d4",
+                            pointBackgroundColor: "#06b6d4",
+                            pointBorderColor: "#fff",
+                            pointHoverBackgroundColor: "#fff",
+                            pointHoverBorderColor: "#06b6d4"
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                angleLines: { color: gridColor },
+                                grid: { color: gridColor },
+                                pointLabels: { color: textColor, font: { size: 11 } },
+                                ticks: { color: textColor, backdropColor: "transparent", min: 0, max: 100 }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: textColor } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Payoff Chart
+        function initPayoffChart() {
+            if (typeof Chart === "undefined" || payoffChartInstance) return;
+
+            const isDark = currentTheme === "dark";
+            const textColor = isDark ? "#94a3b8" : "#475569";
+            const gridColor = isDark ? "#243046" : "#e2e8f0";
+
+            const low = CURRENT_PRICE * 0.75;
+            const high = CURRENT_PRICE * 1.25;
+            const step = (high - low) / 30;
+            const prices = [];
+            const pnl = [];
+            const strike = CURRENT_PRICE * 0.94;
+            const premium = CURRENT_PRICE * 0.025;
+
+            for (let p = low; p <= high; p += step) {
+                prices.push(p.toFixed(2));
+                let profit = 0;
+                // Default Cash-Secured Put simulation
+                if (p >= strike) {
+                    profit = premium;
+                } else {
+                    profit = premium - (strike - p);
+                }
+                pnl.push((profit * 100).toFixed(2));
+            }
+
+            const ctx = document.getElementById("payoffChart").getContext("2d");
+            payoffChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: prices,
+                    datasets: [{
+                        label: "Option Strategy P&L ($ per contract)",
+                        data: pnl,
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: "Stock Price at Expiration ($)", color: textColor },
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, maxTicksLimit: 10 }
+                        },
+                        y: {
+                            title: { display: true, text: "P&L ($)", color: textColor },
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    }
+                }
+            });
+        }
+
+        function updateSimPayoff() {
+            const slider = document.getElementById("priceSlider");
+            const simPrice = parseFloat(slider.value);
+            document.getElementById("sliderPriceDisplay").innerText = "$" + simPrice.toFixed(2);
+            
+            const pctChange = ((simPrice - CURRENT_PRICE) / CURRENT_PRICE) * 100;
+            const sign = pctChange >= 0 ? "+" : "";
+            document.getElementById("simPriceMove").innerText = sign + pctChange.toFixed(2) + "%";
+            
+            const strike = CURRENT_PRICE * 0.94;
+            const breakeven = strike - (CURRENT_PRICE * 0.025);
+            document.getElementById("simBreakeven").innerText = "$" + breakeven.toFixed(2);
+            
+            if (simPrice >= strike) {
+                document.getElementById("simPnLStatus").innerText = "Max Profit (100% Retained)";
+                document.getElementById("simPnLStatus").style.color = "var(--accent-green)";
+            } else if (simPrice >= breakeven) {
+                document.getElementById("simPnLStatus").innerText = "Profitable / Breakeven Zone";
+                document.getElementById("simPnLStatus").style.color = "var(--accent-amber)";
+            } else {
+                document.getElementById("simPnLStatus").innerText = "Assignment / Hedged Zone";
+                document.getElementById("simPnLStatus").style.color = "var(--accent-red)";
+            }
+        }
+
+        function updateChartTheme() {
+            const isDark = currentTheme === "dark";
+            const textColor = isDark ? "#94a3b8" : "#475569";
+            const gridColor = isDark ? "#243046" : "#e2e8f0";
+
+            [priceChartInstance, radarChartInstance, payoffChartInstance].forEach(chart => {
+                if (chart) {
+                    if (chart.options.scales.x) {
+                        chart.options.scales.x.grid.color = gridColor;
+                        chart.options.scales.x.ticks.color = textColor;
+                    }
+                    if (chart.options.scales.y) {
+                        chart.options.scales.y.grid.color = gridColor;
+                        chart.options.scales.y.ticks.color = textColor;
+                    }
+                    if (chart.options.scales.r) {
+                        chart.options.scales.r.angleLines.color = gridColor;
+                        chart.options.scales.r.grid.color = gridColor;
+                        chart.options.scales.r.pointLabels.color = textColor;
+                        chart.options.scales.r.ticks.color = textColor;
+                    }
+                    if (chart.options.plugins && chart.options.plugins.legend) {
+                        chart.options.plugins.legend.labels.color = textColor;
+                    }
+                    chart.update();
+                }
+            });
+        }
+
+        // Initialize on load
+        document.addEventListener("DOMContentLoaded", () => {
+            applyTheme(currentTheme);
+        });
+    </script>
+</body>
+</html>

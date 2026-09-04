@@ -2,7 +2,6 @@
 Macro Indicators Engine.
 Calculates 8 key macro ratio indicators, moving averages, trend slopes,
 and percentile distributions from market data.
-Uses clean red, yellow, green status circle indicators without non-standard emojis.
 """
 
 from typing import Dict, List, Any, Optional
@@ -115,13 +114,13 @@ class MacroIndicatorCalculator:
         percentile = cls.calculate_percentile(ratio_series, current_val)
         trend_direction = cls.determine_trend_direction(slope, diff_ma50_pct)
 
-        # Status circle with clean metric
+        # Status indicator with metric
         if diff_ma50_pct > 1.0:
-            ma50_status = f"🟢 Above (+{diff_ma50_pct:.2f}%)"
+            ma50_status = f"Above (+{diff_ma50_pct:.2f}%)"
         elif diff_ma50_pct < -1.0:
-            ma50_status = f"🔴 Below ({diff_ma50_pct:.2f}%)"
+            ma50_status = f"Below ({diff_ma50_pct:.2f}%)"
         else:
-            ma50_status = f"🟡 At MA ({diff_ma50_pct:+.2f}%)"
+            ma50_status = f"At MA ({diff_ma50_pct:+.2f}%)"
 
         # Active market meaning
         if "Rising" in trend_direction:
