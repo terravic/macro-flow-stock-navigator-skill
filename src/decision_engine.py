@@ -191,116 +191,393 @@ class AlignmentDecisionEngine:
         hostile_forces: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Generates tactical option strategies tailored to macro alignment and ticker volatility.
+        Generates tactical option strategies tailored to macro alignment and ticker volatility,
+        with deep focus on Selling Covered Calls and Selling Cash-Secured Puts.
         """
         price = ticker_info.get("current_price", 100.0)
         ma50 = ticker_info.get("ma50", price)
         vol = ticker_info.get("historical_vol_30d", 30.0)
         rsi = ticker_info.get("rsi_14", 50.0)
+        options_data = ticker_info.get("options_data", {})
 
-        is_high_vol = vol >= 35.0 or rsi <= 35.0
+        calls = options_data.get("calls", [])
+        puts = options_data.get("puts", [])
+        dte = options_data.get("selected_dte", 30)
+        atm_iv = options_data.get("implied_volatility_atm", vol)
+
+        # 1. Compute Options Volatility & Flow Analytics
+        analytics = cls._analyze_options_chain(ticker_info, options_data)
+
+        # 2. Screen Selling Covered Calls Matrix
+        cc_matrix = cls._screen_covered_calls(calls, price, dte)
+
+        # 3. Screen Selling Cash-Secured Puts Matrix
+        csp_matrix = cls._screen_cash_secured_puts(puts, price, dte)
+
+        # 4. Detect Unusual Option Flow & Big Moves
+        uoa_list = cls._detect_unusual_option_activity(calls, puts, price)
+
+        is_high_vol = vol >= 35.0 or rsi <= 35.0 or analytics["iv_rv_spread"] > 3.0
         is_bullish = alignment_score >= 15.0
         is_bearish = alignment_score <= -20.0
 
-        if is_bullish:
-            if is_high_vol:
-                rule = OPTIONS_RULES["CASH_SECURED_PUTS"]
-                strat_name = "Cash-Secured Puts (CSP) / Bull Put Spread"
-                strike_pct = 0.90
-                target_strike = round(price * strike_pct, 2)
-                if price > ma50 and target_strike > ma50:
-                    target_strike = round(ma50 * 0.98, 2)
-                
-                tactical_execution = {
-                    "strategy": strat_name,
-                    "rationale": "Macro alignment is favorable and elevated implied volatility inflates put option premium.",
-                    "recommended_delta": rule["target_delta"],
-                    "optimal_strike": f"${target_strike:.2f} (~{round((1 - target_strike/price)*100, 1)}% OTM, below support)",
-                    "target_dte": rule["target_dte"],
-                    "estimated_annualized_yield": "18.5% - 28.0% ROC (on cash collateral)",
-                    "profit_target": rule["profit_target"],
-                    "stop_loss_rule": rule["stop_loss"],
-                    "ideal_condition": rule["ideal_condition"]
-                }
-            else:
-                rule = OPTIONS_RULES["BULL_CALL_DEBIT_SPREAD"]
-                strat_name = "Bull Call Debit Spread"
-                strike_long = round(price * 0.99, 2)
-                strike_short = round(price * 1.08, 2)
-                tactical_execution = {
-                    "strategy": strat_name,
-                    "rationale": "Favorable macro alignment combined with low IV creates cost-effective directional upside exposure.",
-                    "recommended_delta": rule["target_delta"],
-                    "optimal_strike": f"Buy ${strike_long:.2f} Call / Sell ${strike_short:.2f} Call",
-                    "target_dte": rule["target_dte"],
-                    "estimated_annualized_yield": "1.8x - 2.5x Max ROI on risk capital",
-                    "profit_target": rule["profit_target"],
-                    "stop_loss_rule": rule["stop_loss"],
-                    "ideal_condition": rule["ideal_condition"]
-                }
-        elif is_bearish:
-            rule = OPTIONS_RULES["BEAR_PUT_SPREAD"]
-            strat_name = "Bear Put Spread / Downside Hedge"
-            strike_long = round(price * 0.99, 2)
-            strike_short = round(price * 0.90, 2)
+        # Choose primary prescribed strategy focused on Selling Covered Calls vs Selling Cash-Secured Puts
+        if is_bullish or (is_high_vol and not is_bearish):
+            rule = OPTIONS_RULES.get("CASH_SECURED_PUTS", {
+                "target_delta": "0.20 - 0.30 Delta",
+                "target_dte": "30 - 45 DTE",
+                "profit_target": "75% - 85% of max credit",
+                "stop_loss": "Roll down and out if stock breaches strike with heavy volume",
+                "ideal_condition": "Macro Alignment is Positive + Elevated IV."
+            })
+            strat_name = "Cash-Secured Puts (CSP) / Discount Accumulation"
+            best_csp = csp_matrix.get("balanced", {})
+            opt_strike_val = best_csp.get("strike", round(price * 0.92, 2))
+            opt_yield = best_csp.get("annualized_roc", 18.5)
+            
             tactical_execution = {
                 "strategy": strat_name,
-                "rationale": "Macro alignment is hostile. Defined-risk bear spread hedges downside against multiple contraction.",
+                "rationale": "Favorable macro alignment & elevated put skew offer attractive premium to acquire stock at a discount or generate high-yield collateral cashflow.",
                 "recommended_delta": rule["target_delta"],
-                "optimal_strike": f"Buy ${strike_long:.2f} Put / Sell ${strike_short:.2f} Put",
-                "target_dte": rule["target_dte"],
-                "estimated_annualized_yield": "2.0x - 3.0x Max Payout on hedge capital",
+                "optimal_strike": f"${opt_strike_val:.2f} (~{best_csp.get('otm_pct', 8.0):.1f}% OTM, net cost ${best_csp.get('net_cost_basis', opt_strike_val):.2f})",
+                "target_dte": f"{dte} DTE ({options_data.get('selected_expiration', 'Next Monthly')})",
+                "estimated_annualized_yield": f"{opt_yield:.1f}% Annualized Return on Collateral (ROC)",
                 "profit_target": rule["profit_target"],
                 "stop_loss_rule": rule["stop_loss"],
                 "ideal_condition": rule["ideal_condition"]
             }
-        else:
-            if is_high_vol:
-                rule = OPTIONS_RULES["IRON_CONDOR"]
-                strat_name = "Iron Condor / Range Premium Harvest"
-                put_strike = round(price * 0.90, 2)
-                call_strike = round(price * 1.10, 2)
-                tactical_execution = {
-                    "strategy": strat_name,
-                    "rationale": "Macro regime is range-bound. Harvest elevated implied volatility across both wings.",
-                    "recommended_delta": rule["target_delta"],
-                    "optimal_strike": f"Short Put: ${put_strike:.2f} | Short Call: ${call_strike:.2f}",
-                    "target_dte": rule["target_dte"],
-                    "estimated_annualized_yield": "15.0% - 22.0% ROC",
-                    "profit_target": rule["profit_target"],
-                    "stop_loss_rule": rule["stop_loss"],
-                    "ideal_condition": rule["ideal_condition"]
-                }
-            else:
-                rule = OPTIONS_RULES["COVERED_CALLS"]
-                strat_name = "Covered Calls / Cashflow Overlay"
-                call_strike = round(price * 1.07, 2)
-                tactical_execution = {
-                    "strategy": strat_name,
-                    "rationale": "Consolidating macro trend. Monetize sideways action by selling OTM upside call premium.",
-                    "recommended_delta": rule["target_delta"],
-                    "optimal_strike": f"${call_strike:.2f} (~{round((call_strike/price - 1)*100, 1)}% OTM above resistance)",
-                    "target_dte": rule["target_dte"],
-                    "estimated_annualized_yield": "12.0% - 18.0% Annualized Cash Flow",
-                    "profit_target": rule["profit_target"],
-                    "stop_loss_rule": rule["stop_loss"],
-                    "ideal_condition": rule["ideal_condition"]
-                }
+        elif is_bearish:
+            rule = OPTIONS_RULES.get("COVERED_CALLS", {
+                "target_delta": "0.30 - 0.40 Delta",
+                "target_dte": "21 - 35 DTE",
+                "profit_target": "80% - 90% of max credit",
+                "stop_loss": "Roll up and out if stock breaks above resistance",
+                "ideal_condition": "Macro Alignment is Bearish / Hostile + Defensive overlay."
+            })
+            strat_name = "Covered Calls / Defensive Cashflow Overlay"
+            best_cc = cc_matrix.get("aggressive", {})
+            opt_strike_val = best_cc.get("strike", round(price * 1.03, 2))
+            opt_yield = best_cc.get("yield_unassigned", 22.0)
+            
+            tactical_execution = {
+                "strategy": strat_name,
+                "rationale": "Hostile macro regime favors aggressive short call premium collection to generate defensive income and hedge downside valuation drift.",
+                "recommended_delta": rule["target_delta"],
+                "optimal_strike": f"${opt_strike_val:.2f} (~{best_cc.get('otm_pct', 3.0):.1f}% OTM above resistance)",
+                "target_dte": f"{dte} DTE ({options_data.get('selected_expiration', 'Next Monthly')})",
+                "estimated_annualized_yield": f"{opt_yield:.1f}% Annualized Cash Flow Yield",
+                "profit_target": rule["profit_target"],
+                "stop_loss_rule": rule["stop_loss"],
+                "ideal_condition": rule["ideal_condition"]
+            }
+        else: # Neutral / Ranging
+            rule = OPTIONS_RULES.get("COVERED_CALLS", {
+                "target_delta": "0.25 - 0.35 Delta",
+                "target_dte": "30 - 45 DTE",
+                "profit_target": "75% - 85% of max credit",
+                "stop_loss": "Roll up and out if stock breaches strike with heavy volume",
+                "ideal_condition": "Macro Alignment is Neutral / Ranging."
+            })
+            strat_name = "Covered Calls / Systematic Income Harvest"
+            best_cc = cc_matrix.get("balanced", {})
+            opt_strike_val = best_cc.get("strike", round(price * 1.06, 2))
+            opt_yield = best_cc.get("yield_unassigned", 15.5)
+
+            tactical_execution = {
+                "strategy": strat_name,
+                "rationale": "Neutral macro consolidation. Monetize sideways range by selling OTM upside call premium while maintaining stock upside participation.",
+                "recommended_delta": rule["target_delta"],
+                "optimal_strike": f"${opt_strike_val:.2f} (~{best_cc.get('otm_pct', 6.0):.1f}% OTM above resistance)",
+                "target_dte": f"{dte} DTE ({options_data.get('selected_expiration', 'Next Monthly')})",
+                "estimated_annualized_yield": f"{opt_yield:.1f}% Annualized Cash Flow Yield",
+                "profit_target": rule["profit_target"],
+                "stop_loss_rule": rule["stop_loss"],
+                "ideal_condition": rule["ideal_condition"]
+            }
 
         risk_warnings = []
         if hostile_forces:
             for h in hostile_forces[:2]:
                 risk_warnings.append(f"{h['indicator']} ({h['ratio']}) is {h['trend']}: {h['meaning']}.")
         if vol > 45.0:
-            risk_warnings.append(f"Elevated 30-day volatility ({vol:.1f}%) indicates high realized turbulence.")
+            risk_warnings.append(f"Elevated 30-day volatility ({vol:.1f}%) indicates wide price swings; prefer conservative strike selection.")
+        if analytics["iv_rv_spread"] < -5.0:
+            risk_warnings.append(f"Implied Volatility ({analytics['iv_atm']:.1f}%) is discounted vs Realized Vol ({analytics['hv_30d']:.1f}%); option premiums are relatively lean.")
         if not risk_warnings:
-            risk_warnings.append("Macro indicators are aligned; monitor upcoming CPI and FOMC rate decisions.")
+            risk_warnings.append("Macro indicators are balanced; monitor upcoming earnings release and FOMC rate decisions.")
 
         return {
             "strategy": strat_name,
             "tactical_execution": tactical_execution,
+            "options_analytics": analytics,
+            "covered_call_matrix": cc_matrix,
+            "cash_secured_put_matrix": csp_matrix,
+            "unusual_activity": uoa_list,
+            "options_chain": {
+                "expiration": options_data.get("selected_expiration", ""),
+                "dte": dte,
+                "calls": calls[:15],
+                "puts": puts[:15]
+            },
             "risk_warnings": risk_warnings
         }
+
+    @classmethod
+    def _analyze_options_chain(
+        cls,
+        ticker_info: Dict[str, Any],
+        options_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Calculates key options indicators: IV Rank, IV/RV spread, PCR (Vol & OI),
+        Max Pain Theory Strike, and 30-day Expected Move cone.
+        """
+        price = float(ticker_info.get("current_price", 100.0))
+        hv_30d = float(ticker_info.get("historical_vol_30d", 30.0))
+        iv_atm = float(options_data.get("implied_volatility_atm", hv_30d))
+        dte = int(options_data.get("selected_dte", 30))
+        
+        calls = options_data.get("calls", [])
+        puts = options_data.get("puts", [])
+
+        # 1. IV vs RV Spread
+        iv_rv_spread = round(iv_atm - hv_30d, 1)
+
+        # 2. IV Rank & Percentile (Estimated based on annualized historical volatility channel)
+        min_iv_est = max(10.0, hv_30d * 0.65)
+        max_iv_est = max(50.0, hv_30d * 1.85)
+        iv_rank = round(float(np.clip(((iv_atm - min_iv_est) / (max_iv_est - min_iv_est)) * 100.0, 0.0, 100.0)), 1)
+        iv_percentile = round(float(np.clip(iv_rank * 0.95 + 5.0, 0.0, 100.0)), 1)
+
+        # 3. Put-Call Ratio by Volume & Open Interest
+        total_call_vol = sum(c.get("volume", 0) for c in calls)
+        total_put_vol = sum(p.get("volume", 0) for p in puts)
+        pcr_vol = round(total_put_vol / total_call_vol, 2) if total_call_vol > 0 else 1.0
+
+        total_call_oi = sum(c.get("openInterest", 0) for c in calls)
+        total_put_oi = sum(p.get("openInterest", 0) for p in puts)
+        pcr_oi = round(total_put_oi / total_call_oi, 2) if total_call_oi > 0 else 1.0
+
+        # 4. Max Pain Strike Calculation
+        max_pain = cls._calculate_max_pain(calls, puts, price)
+
+        # 5. Expected Move (1-Sigma)
+        t_fraction = max(1, dte) / 365.0
+        expected_move = round(price * (iv_atm / 100.0) * np.sqrt(t_fraction), 2)
+        expected_upper = round(price + expected_move, 2)
+        expected_lower = round(price - expected_move, 2)
+        expected_move_pct = round((expected_move / price) * 100.0, 1)
+
+        return {
+            "iv_atm": round(iv_atm, 1),
+            "hv_30d": round(hv_30d, 1),
+            "iv_rv_spread": iv_rv_spread,
+            "iv_rank": iv_rank,
+            "iv_percentile": iv_percentile,
+            "pcr_volume": pcr_vol,
+            "pcr_open_interest": pcr_oi,
+            "total_call_volume": total_call_vol,
+            "total_put_volume": total_put_vol,
+            "max_pain_strike": max_pain,
+            "expected_move_30d": expected_move,
+            "expected_move_pct": expected_move_pct,
+            "expected_move_upper": expected_upper,
+            "expected_move_lower": expected_lower
+        }
+
+    @staticmethod
+    def _calculate_max_pain(calls: List[Dict[str, Any]], puts: List[Dict[str, Any]], spot: float) -> float:
+        """
+        Calculates the strike price where total option holder loss is maximized (Max Pain strike).
+        """
+        all_strikes = sorted(list(set([c.get("strike", 0) for c in calls] + [p.get("strike", 0) for p in puts])))
+        if not all_strikes:
+            return round(spot, 2)
+
+        min_loss = float("inf")
+        max_pain_strike = spot
+
+        for strike in all_strikes:
+            total_loss = 0.0
+            # Call loss: if strike < k, call holders lose money
+            for c in calls:
+                k = c.get("strike", 0)
+                oi = c.get("openInterest", 0)
+                if strike > k:
+                    total_loss += (strike - k) * oi * 100.0
+            # Put loss: if strike > k, put holders lose money
+            for p in puts:
+                k = p.get("strike", 0)
+                oi = p.get("openInterest", 0)
+                if strike < k:
+                    total_loss += (k - strike) * oi * 100.0
+            
+            if total_loss < min_loss:
+                min_loss = total_loss
+                max_pain_strike = strike
+
+        return round(float(max_pain_strike), 2)
+
+    @staticmethod
+    def _screen_covered_calls(calls: List[Dict[str, Any]], spot: float, dte: int) -> Dict[str, Any]:
+        """
+        Screens optimal OTM call strikes across Conservative (0.20Δ), Balanced (0.30Δ),
+        and Aggressive (0.40Δ) tiers for Selling Covered Calls.
+        """
+        otm_calls = [c for c in calls if c.get("strike", 0) >= spot]
+        if not otm_calls:
+            otm_calls = calls
+
+        def find_closest_call(target_delta: float) -> Dict[str, Any]:
+            if not otm_calls:
+                return {}
+            # Sort by delta closeness
+            best = min(otm_calls, key=lambda c: abs(c.get("delta", 0.5) - target_delta))
+            strike = best.get("strike", spot * 1.05)
+            mid = best.get("mid", best.get("lastPrice", spot * 0.02))
+            delta = best.get("delta", target_delta)
+            theta = best.get("theta", -0.05)
+            otm_pct = round(((strike - spot) / spot) * 100.0, 1)
+            
+            # Annualized Yield if Unassigned: (Premium / Spot) * (365 / DTE) * 100
+            yield_unassigned = round((mid / spot) * (365.0 / max(1, dte)) * 100.0, 1)
+            # Total Return if Called Away: ((Strike - Spot + Premium) / Spot) * 100
+            return_called = round(((strike - spot + mid) / spot) * 100.0, 1)
+            # Downside Cushion Buffer: (Premium / Spot) * 100
+            downside_buf = round((mid / spot) * 100.0, 1)
+
+            return {
+                "tier_name": f"{int(target_delta*100)}Δ Tier",
+                "strike": strike,
+                "delta": delta,
+                "theta": theta,
+                "bid": best.get("bid", mid * 0.95),
+                "ask": best.get("ask", mid * 1.05),
+                "mid": mid,
+                "otm_pct": otm_pct,
+                "yield_unassigned": yield_unassigned,
+                "return_called_away": return_called,
+                "downside_protection": downside_buf,
+                "dte": dte
+            }
+
+        return {
+            "conservative": find_closest_call(0.20),
+            "balanced": find_closest_call(0.30),
+            "aggressive": find_closest_call(0.40)
+        }
+
+    @staticmethod
+    def _screen_cash_secured_puts(puts: List[Dict[str, Any]], spot: float, dte: int) -> Dict[str, Any]:
+        """
+        Screens optimal OTM put strikes across Conservative (0.20Δ), Balanced (0.30Δ),
+        and Aggressive (0.40Δ) tiers for Selling Cash-Secured Puts.
+        """
+        otm_puts = [p for p in puts if p.get("strike", 0) <= spot]
+        if not otm_puts:
+            otm_puts = puts
+
+        def find_closest_put(target_delta: float) -> Dict[str, Any]:
+            if not otm_puts:
+                return {}
+            # Delta on puts is negative (-0.20, -0.30, -0.40)
+            best = min(otm_puts, key=lambda p: abs(abs(p.get("delta", -0.5)) - target_delta))
+            strike = best.get("strike", spot * 0.95)
+            mid = best.get("mid", best.get("lastPrice", spot * 0.02))
+            delta = best.get("delta", -target_delta)
+            theta = best.get("theta", -0.05)
+            otm_pct = round(((spot - strike) / spot) * 100.0, 1)
+            
+            # Collateral required per contract = Strike * 100
+            collateral = round(strike * 100.0, 2)
+            # Net Effective Cost Basis if assigned = Strike - Premium
+            net_cost = round(strike - mid, 2)
+            discount_pct = round(((spot - net_cost) / spot) * 100.0, 1)
+            # Annualized Return on Collateral (ROC) = (Premium / Strike) * (365 / DTE) * 100
+            annualized_roc = round((mid / strike) * (365.0 / max(1, dte)) * 100.0, 1)
+
+            return {
+                "tier_name": f"{int(target_delta*100)}Δ Tier",
+                "strike": strike,
+                "delta": delta,
+                "theta": theta,
+                "bid": best.get("bid", mid * 0.95),
+                "ask": best.get("ask", mid * 1.05),
+                "mid": mid,
+                "otm_pct": otm_pct,
+                "collateral_required": collateral,
+                "net_cost_basis": net_cost,
+                "discount_pct": discount_pct,
+                "annualized_roc": annualized_roc,
+                "dte": dte
+            }
+
+        return {
+            "conservative": find_closest_put(0.20),
+            "balanced": find_closest_put(0.30),
+            "aggressive": find_closest_put(0.40)
+        }
+
+    @staticmethod
+    def _detect_unusual_option_activity(
+        calls: List[Dict[str, Any]],
+        puts: List[Dict[str, Any]],
+        spot: float
+    ) -> List[Dict[str, Any]]:
+        """
+        Detects unusual option flow anomalies and institutional positioning (Volume > 1.5x Open Interest).
+        """
+        uoa_candidates = []
+
+        for c in calls:
+            vol = c.get("volume", 0)
+            oi = c.get("openInterest", 0)
+            vol_oi = c.get("vol_oi_ratio", 0.0)
+            mid = c.get("mid", c.get("lastPrice", 0.0))
+            dollar_flow = round(vol * mid * 100.0, 2)
+            
+            if vol >= 30 and (vol_oi >= 1.4 or dollar_flow >= 50000.0):
+                strike = c.get("strike", spot)
+                sentiment = "Bullish Call Buying / Sweep" if strike >= spot else "In-the-Money Call Accumulation"
+                uoa_candidates.append({
+                    "option_type": "CALL",
+                    "strike": strike,
+                    "contract": c.get("contractSymbol", f"Call ${strike}"),
+                    "volume": vol,
+                    "open_interest": oi,
+                    "vol_oi_ratio": vol_oi,
+                    "mid_price": mid,
+                    "dollar_flow": dollar_flow,
+                    "sentiment": sentiment,
+                    "in_the_money": c.get("inTheMoney", False)
+                })
+
+        for p in puts:
+            vol = p.get("volume", 0)
+            oi = p.get("openInterest", 0)
+            vol_oi = p.get("vol_oi_ratio", 0.0)
+            mid = p.get("mid", p.get("lastPrice", 0.0))
+            dollar_flow = round(vol * mid * 100.0, 2)
+            
+            if vol >= 30 and (vol_oi >= 1.4 or dollar_flow >= 50000.0):
+                strike = p.get("strike", spot)
+                sentiment = "Protective Put Buying / Hedge" if strike <= spot else "In-the-Money Put Sweep"
+                uoa_candidates.append({
+                    "option_type": "PUT",
+                    "strike": strike,
+                    "contract": p.get("contractSymbol", f"Put ${strike}"),
+                    "volume": vol,
+                    "open_interest": oi,
+                    "vol_oi_ratio": vol_oi,
+                    "mid_price": mid,
+                    "dollar_flow": dollar_flow,
+                    "sentiment": sentiment,
+                    "in_the_money": p.get("inTheMoney", False)
+                })
+
+        # Rank by total dollar premium flow
+        uoa_candidates.sort(key=lambda x: x["dollar_flow"], reverse=True)
+        return uoa_candidates[:6]
 
     @staticmethod
     def _format_gauge(score: float) -> str:

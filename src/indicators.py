@@ -96,7 +96,9 @@ class MacroIndicatorCalculator:
                 "percentile_90d": 50.0,
                 "raw_sentiment_score": 0.0,
                 "market_meaning": "Insufficient historical data",
-                "history": []
+                "history": [],
+                "history_dates": [],
+                "history_ma50": []
             }
 
         if is_spx_gdp:
@@ -139,6 +141,25 @@ class MacroIndicatorCalculator:
         elif diff_ma50_pct < 0:
             raw_score -= 0.5
 
+        tail_len = min(60, len(ratio_series))
+        tail_ratio = ratio_series.iloc[-tail_len:]
+        tail_ma50 = ma50_series.iloc[-tail_len:]
+
+        dates_list = []
+        for idx in tail_ratio.index:
+            if hasattr(idx, "strftime"):
+                dates_list.append(idx.strftime("%Y-%m-%d"))
+            elif isinstance(idx, str) and len(idx) >= 10:
+                dates_list.append(idx[:10])
+            else:
+                dates_list.append(str(idx))
+
+        history_vals = [round(float(v), 4 if abs(v) < 10 else 2) for v in tail_ratio]
+        history_ma50_vals = [
+            round(float(m), 4 if abs(m) < 10 else 2) if not pd.isna(m) else history_vals[i]
+            for i, m in enumerate(tail_ma50)
+        ]
+
         return {
             "id": name,
             "display_name": display_name,
@@ -152,7 +173,9 @@ class MacroIndicatorCalculator:
             "percentile_90d": round(percentile, 1),
             "raw_sentiment_score": round(raw_score, 2),
             "market_meaning": meaning,
-            "history": ratio_series.tail(30).tolist()
+            "history": history_vals,
+            "history_dates": dates_list,
+            "history_ma50": history_ma50_vals
         }
 
     @classmethod
