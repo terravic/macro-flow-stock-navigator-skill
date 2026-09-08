@@ -834,7 +834,7 @@
                 <span>Session: 2026-09-04</span>
             </div>
             <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
-                <span id="themeLabel">☀️ Light Mode</span>
+                <span id="themeLabel">Light Mode</span>
             </button>
         </div>
     </header>
@@ -2986,7 +2986,7 @@
             currentTheme = theme;
             document.documentElement.setAttribute("data-theme", theme);
             const lbl = document.getElementById("themeLabel");
-            if (lbl) lbl.innerText = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
+            if (lbl) lbl.innerText = theme === "dark" ? "Light Mode" : "Dark Mode";
             localStorage.setItem("mf_theme", theme);
             
             if (hasChartJs) {

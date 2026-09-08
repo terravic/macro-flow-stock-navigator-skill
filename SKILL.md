@@ -5,15 +5,15 @@ description: >-
   IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX), classifies target stock tickers by market
   archetype (Mega-Cap Tech, High-Beta Speculative, Cyclical, Defensive, Financials), and computes
   a multi-factor macro alignment score to output a clean, business-like trading decision
-  dashboard and tactical options playbook (Cash-Secured Puts, Covered Calls, Debit Spreads).
+  dashboard and tactical options playbook (Selling Covered Calls, Selling Cash-Secured Puts, Unusual Flow Tracking).
   Use this skill whenever the user asks for macro market alignment, stock rating/signals, options
-  strategy recommendations for a stock ticker (e.g. GOOG, SOFI, NVDA, AAPL), or cross-asset relative
-  strength analysis.
+  strategy recommendations for a stock ticker (e.g. GOOG, SOFI, NVDA, AAPL), personalized Covered Call
+  recommendations for shares held, or Cash-Secured Put recommendations for a dollar cash amount.
 ---
 
 # Macro Flow Stock Navigator
 
-An enterprise-grade cross-asset decision engine for AI agent harnesses. It bridges macroeconomic regime dynamics with single-stock positioning and tactical options execution using real-time market data.
+An enterprise-grade cross-asset decision engine for AI agent harnesses. It bridges macroeconomic regime dynamics with single-stock positioning and tactical options execution (Selling Covered Calls & Cash-Secured Puts) using real-time market data.
 
 ---
 
@@ -21,34 +21,44 @@ An enterprise-grade cross-asset decision engine for AI agent harnesses. It bridg
 
 Activate this skill when the user:
 - Asks for a **macro health check** or **relative strength analysis** for any stock ticker (e.g., "Analyze GOOG macro flow alignment", "Is SOFI in a favorable macro environment?").
-- Requests an **options strategy recommendation** (e.g., "Should I sell cash-secured puts or covered calls on SOFI?", "What delta and strike should I trade on GOOG?").
-- Asks for a **trading decision dashboard** evaluating market breadth, risk-on vs. risk-off sentiment, tech momentum, and volatility.
+- Asks for **personalized Covered Call recommendations** given a number of shares held (e.g., "I own 300 shares of GOOG, what covered call should I sell?").
+- Asks for **personalized Cash-Secured Put recommendations** given a cash dollar amount (e.g., "I have $25,000 cash, what cash-secured puts should I sell on SOFI?").
+- Requests an **options selling playbook** evaluating implied volatility rank, IV vs. RV spread, Put/Call volume & open interest ratio, Max Pain strike, and institutional Unusual Option Activity (UOA).
 - Inquires about the **8 cross-asset macro indicators** (RSP/SPY, GLD/SPX, NDX/SPX, IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX).
 
 ---
 
 ## Execution Workflow for Agents
 
-When this skill is invoked with a user's stock ticker (e.g., `GOOG`, `SOFI`, `NVDA`, `AAPL`):
+When this skill is invoked with a user's stock ticker (e.g., `GOOG`, `SOFI`, `NVDA`, `AAPL`) and optional portfolio parameters (`--shares`, `--cash`):
 
 ```mermaid
 graph TD
-    A["User Request with Ticker (e.g., GOOG, SOFI)"] --> B["Execute run_analysis.py CLI Tool"]
-    B --> C["Fetch Live Market Data (8 Ratios + Ticker)"]
-    C --> D["Calculate 50-MA, Slope, Percentiles & Volatility"]
+    A["User Request (Ticker, Shares Held, or Cash Capital)"] --> B["Execute run_analysis.py CLI Tool"]
+    B --> C["Fetch Live Market Data & Real-Time Option Chains"]
+    C --> D["Calculate 50-MA, Slope, Percentiles & Volatility Ranks"]
     D --> E["Archetype Classification & Macro Alignment Matrix"]
-    E --> F["Formulate Stock Signal & Options Playbook"]
-    F --> G["Render Clean Business Dashboard"]
+    E --> F["Formulate Stock Signal & Sells Covered Calls / Puts Matrices"]
+    F --> G["Render Portfolio Overlay & Interactive Web UI"]
 ```
 
 ### Step 1: Run the Core Python Tool
-Execute the analysis script located at [`scripts/run_analysis.py`](scripts/run_analysis.py) using the user's ticker symbol:
+Execute the analysis script located at [`scripts/run_analysis.py`](scripts/run_analysis.py):
 
 ```bash
 # Standard real-time execution (outputs Markdown dashboard)
 python3 scripts/run_analysis.py --ticker <TICKER> --format markdown
 
-# Generate interactive Canvas UI HTML Dashboard (renders in Canvas iframe):
+# With shares held for tailored Covered Call recommendation:
+python3 scripts/run_analysis.py --ticker <TICKER> --shares <NUM_SHARES>
+
+# With cash amount for tailored Cash-Secured Put recommendation:
+python3 scripts/run_analysis.py --ticker <TICKER> --cash <DOLLAR_AMOUNT>
+
+# Combined portfolio analysis with shares held and available cash:
+python3 scripts/run_analysis.py --ticker <TICKER> --shares 200 --cash 35000
+
+# Generate interactive Web UI HTML Dashboard (renders in UI iframe):
 python3 scripts/run_analysis.py --ticker <TICKER> --format html --output reports/dashboard_<TICKER>.html
 
 # For programmatic downstream agent JSON consumption:
@@ -56,24 +66,20 @@ python3 scripts/run_analysis.py --ticker <TICKER> --format json
 ```
 
 ### Step 2: Extract & Verify Output
-1. The script automatically fetches real-time historical time series for the 8 macro ratio pairs and the target equity.
-2. It computes the 50-day moving average, trend slope, and 90-day percentile rank for each indicator.
-3. It determines the **Archetype Sensitivity Alignment** and calculates the **Macro Alignment Score** (-100 to +100).
-4. It derives the **Recommended Action Signal** (e.g., `STRONG BUY`, `ACCUMULATE`, `NEUTRAL (RANGING)`, `PROTECT / SELL`).
-5. It computes the exact **Options Playbook** (target strategy, recommended delta, exact strike price offset below support, DTE, and risk warnings).
+1. The script automatically fetches real-time historical time series for the 8 macro ratio pairs and the target equity's live option chain.
+2. It computes the 50-day moving average, trend slope, and 90-day percentile rank for each macro indicator.
+3. It screens three distinct risk tiers (Conservative 0.20Δ, Balanced 0.30Δ, Aggressive 0.40Δ) for both **Covered Calls** and **Cash-Secured Puts**.
+4. If `--shares` or `--cash` is supplied, it generates an immediate **Portfolio Positioning & Tailored Options Recommendation** section detailing exact contract capacity, upfront premium income, annualized yield/ROC, break-even cost basis, and assigned return.
+5. It detects institutional **Unusual Option Activity (UOA)** where volume exceeds 1.5x Open Interest.
 
-### Step 3: Present the Executive Dashboard & Canvas UI
-Deliver the formatted Markdown or interactive Canvas UI dashboard directly to the user:
-1. **Executive Summary Table:** Ticker, price, action badge, alignment gauge, and macro regime.
-2. **Macro Cross-Asset Indicators Table:** 8 macro ratios with ratio tickers, current value, 50-MA status, trend signal, and market meaning.
-3. **Macro Drivers & Sensitivity Analysis:** Technical health metrics and concise list of Tailwinds vs. Headwinds.
-4. **Strategic Options Playbook:** Clean table with Strategy, Delta, Strike, DTE, Yield, Profit Target, and Stop Loss.
-5. **Interactive Canvas UI Dashboard:** If visual dashboards are desired, generate an `.html` file with `--format html` (powered by the standalone [`templates/dashboard_template.html`](templates/dashboard_template.html) template) for native rendering in Canvas iframe with:
-   - Light and dark theme toggle.
-   - Interactive stock price trend chart with 50-MA and 200-MA overlays.
-   - 8-Ratio macro indicator percentile radar chart.
-   - Interactive options payoff (P&L) expiration simulator with dynamic price slider.
-6. **Key Risk Considerations:** Specific macro contradictions and risk factors.
+### Step 3: Present the Executive Dashboard & Answer Follow-Up Questions
+Deliver the formatted Markdown or interactive Web UI dashboard directly to the user:
+1. **Executive Summary & Tailored Portfolio Section:** Displays exact shares held / cash deployed, contract capacity, and projected income.
+2. **8 Macro Cross-Asset Indicators Table:** RSP/SPY, GLD/SPX, NDX/SPX, IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX with moving average trends.
+3. **Covered Call & Cash-Secured Put Screener Matrices:** Conservative, Balanced, and Aggressive tiers with strike, premium mid, delta, theta, OTM %, yield, cushion, and net basis.
+4. **Institutional Option Flow & Max Pain:** Key market sentiment indicators, IV rank, Put/Call ratios, and anomalous sweeps.
+5. **Answering Subsequent Options Questions:**
+   - If the user asks *"What if I have X shares?"* or *"What if I have $Y cash?"*, use the screener matrices to immediately calculate exact contracts (`shares // 100` or `cash // (strike * 100)`), upfront premium cashflow, downside protection buffer, and optimal rollover rules.
 
 ---
 
@@ -94,42 +100,18 @@ Deliver the formatted Markdown or interactive Canvas UI dashboard directly to th
 
 ---
 
-## Stock Archetypes & Alignment Logic
+## Options Selling Rules & Sizing Framework
 
-The decision engine routes the target ticker into 5 distinct behavioral archetypes:
-
-1. **Mega-Cap Tech (`MEGA_CAP_TECH`):** (e.g., `GOOG`, `MSFT`, `AAPL`, `NVDA`, `META`, `AMZN`)
-   - *Tailwinds:* Rising `NDX/SPX`, falling `RSP/SPY` (when mega-caps lead), falling `GLD/SPX`.
-   - *Headwinds:* Severe spikes in `VIX/SPX`, rotation out of tech into defensives.
-2. **High-Beta Speculative Growth (`HIGH_BETA_GROWTH`):** (e.g., `SOFI`, `PLTR`, `ROKU`, `AFRM`, `COIN`)
-   - *Tailwinds:* Rising `IWM/SPY`, rising `SPHB/SPLV`, falling `GLD/SPX`, compressing `VIX/SPX`.
-   - *Headwinds:* Rising gold/safe-haven demand, small-cap lag, tight liquidity.
-3. **Cyclical & Industrial (`CYCLICAL_INDUSTRIAL`):** (e.g., `CAT`, `DE`, `GM`, `NKE`, `URI`, `XOM`)
-   - *Tailwinds:* Rising `XLY/XLP`, rising `RSP/SPY`, rising `IWM/SPY`.
-4. **Defensive & Value (`DEFENSIVE_VALUE`):** (e.g., `JNJ`, `PG`, `KO`, `PEP`, `MCD`, `WMT`)
-   - *Tailwinds:* Falling `SPHB/SPLV` (Low Vol leading), rising `GLD/SPX`, tech de-risking.
-5. **Financials & Banking (`FINANCIAL_BANKING`):** (e.g., `JPM`, `BAC`, `GS`, `MS`, `WFC`)
-   - *Tailwinds:* Broad market expansion, domestic credit growth (`IWM/SPY`), consumer health.
-
-*For full taxonomy details, refer to [`references/archetype_taxonomy.md`](references/archetype_taxonomy.md).*
-
----
-
-## Options Playbook Strategy Matrix
-
-- **High Volatility (IV > 35%) + Bullish/Neutral Macro:**
-  - **Strategy:** `Cash-Secured Puts (CSP)` or `Bull Put Spread`
-  - **Delta:** `0.20 - 0.28 Delta` (~75-80% PoP)
-  - **Strike:** 7% - 12% OTM, anchored below the 50-day Moving Average support.
-  - **DTE:** `30 - 45 DTE` (captures accelerated theta decay).
-- **Low Volatility (IV < 30%) + Bullish Macro:**
-  - **Strategy:** `Bull Call Debit Spread` (Buy 0.65 Delta, Sell 0.30 Delta, 45-75 DTE).
-- **Neutral / Ranging Macro:**
-  - **Strategy:** `Covered Calls` (0.25-0.35 Delta, 21-35 DTE) or `Iron Condors`.
-- **Hostile / Risk-Off Macro:**
-  - **Strategy:** `Bear Put Debit Spread` or `Collar / Protective Puts`.
-
-*For complete trade management and stop loss rules, refer to [`references/options_playbook_matrix.md`](references/options_playbook_matrix.md).*
+- **Covered Calls (Long 100 Shares + Sell Call):**
+  - **Contract Capacity:** `floor(shares_held / 100)`.
+  - **Conservative Tier (0.20Δ):** ~80% probability of expiring unassigned; maximizes share retention.
+  - **Balanced Tier (0.30Δ):** Optimal balance between upfront income and upside stock appreciation.
+  - **Aggressive Tier (0.40Δ):** Highest cashflow yield; best for neutral or hostile macro regimes.
+- **Cash-Secured Puts (Cash Collateral + Sell Put):**
+  - **Contract Capacity:** `floor(cash_available / (strike * 100))`.
+  - **Conservative Tier (0.20Δ):** Deep discount (~80% win rate); safe entry into high-quality growth stocks.
+  - **Balanced Tier (0.30Δ):** High annualized Return on Capital (ROC) anchored below moving average support.
+  - **Aggressive Tier (0.40Δ):** Maximizes cash premium harvest in high-IV regimes.
 
 ---
 

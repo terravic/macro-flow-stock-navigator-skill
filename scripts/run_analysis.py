@@ -23,7 +23,9 @@ def run_navigator(
     lookback_days: int = 90,
     output_format: str = "markdown",
     output_file: str = None,
-    nominal_gdp: float = DEFAULT_NOMINAL_GDP_TRILLIONS
+    nominal_gdp: float = DEFAULT_NOMINAL_GDP_TRILLIONS,
+    shares_held: int = 0,
+    cash_available: float = 0.0
 ) -> str:
     """
     Executes the macro alignment workflow and returns rendered output.
@@ -60,7 +62,9 @@ def run_navigator(
         rendered = DashboardRenderer.render_html(
             ticker_info=ticker_info,
             indicators=indicators,
-            decision=decision
+            decision=decision,
+            shares_held=shares_held,
+            cash_available=cash_available
         )
     elif output_format == "summary":
         rendered = (
@@ -73,7 +77,9 @@ def run_navigator(
         rendered = DashboardRenderer.render_markdown(
             ticker_info=ticker_info,
             indicators=indicators,
-            decision=decision
+            decision=decision,
+            shares_held=shares_held,
+            cash_available=cash_available
         )
 
     # 5. Save to file if requested
@@ -120,6 +126,18 @@ def main():
         default=DEFAULT_NOMINAL_GDP_TRILLIONS,
         help="Nominal US GDP in Trillions for SPX/GDP Buffett Indicator (default: 29.5)"
     )
+    parser.add_argument(
+        "--shares", "-s",
+        type=int,
+        default=0,
+        help="Number of shares held for personalized Covered Call recommendation (e.g. --shares 200)"
+    )
+    parser.add_argument(
+        "--cash", "-c",
+        type=float,
+        default=0.0,
+        help="Cash capital available for personalized Cash-Secured Put recommendation (e.g. --cash 15000)"
+    )
 
     args = parser.parse_args()
 
@@ -128,7 +146,9 @@ def main():
         lookback_days=args.lookback,
         output_format=args.format,
         output_file=args.output,
-        nominal_gdp=args.gdp
+        nominal_gdp=args.gdp,
+        shares_held=args.shares,
+        cash_available=args.cash
     )
 
     print(output)

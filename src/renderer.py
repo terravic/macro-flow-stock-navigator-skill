@@ -17,7 +17,9 @@ class DashboardRenderer:
         cls,
         ticker_info: Dict[str, Any],
         indicators: Dict[str, Dict[str, Any]],
-        decision: Dict[str, Any]
+        decision: Dict[str, Any],
+        shares_held: int = 0,
+        cash_available: float = 0.0
     ) -> str:
         """
         Builds a concise, business-like Markdown response focusing on Macro alignment
@@ -55,6 +57,53 @@ class DashboardRenderer:
         lines.append(f"| **Macro Regime** | {macro_regime.get('name', 'Balanced Rotation')} | **Last Session Close** | {last_trade_date} |")
         lines.append(f"| **Analysis Timestamp** | {timestamp_str} | **Market Status** | Real-Time / Last Close ({last_trade_date}) |")
         lines.append("")
+
+        # Optional Portfolio Overlay (Shares Held or Cash Collateral)
+        if shares_held > 0 or cash_available > 0:
+            lines.append("## Portfolio Positioning & Tailored Options Recommendations")
+            lines.append("")
+            if shares_held > 0:
+                num_contracts = shares_held // 100
+                remainder = shares_held % 100
+                lines.append(f"### Tailored Covered Call Strategy ({shares_held:,} Shares Held)")
+                if num_contracts > 0:
+                    lines.append(f"- **Covered Call Capacity:** `{num_contracts} contract(s)` (100 shares per contract). Remainder unhedged: `{remainder} shares`.")
+                    balanced_cc = cc_matrix.get("balanced", {})
+                    cons_cc = cc_matrix.get("conservative", {})
+                    agg_cc = cc_matrix.get("aggressive", {})
+                    
+                    if balanced_cc:
+                        mid_p = balanced_cc.get("mid", 0.0)
+                        prem_total = mid_p * 100.0 * num_contracts
+                        lines.append(f"- **Recommended Strike:** `${balanced_cc.get('strike', 0.0):.2f}` ({balanced_cc.get('delta', 0.0):+.2f}Δ, ~{balanced_cc.get('otm_pct', 0.0):.1f}% OTM) expiring in `{balanced_cc.get('dte', 30)}d`.")
+                        lines.append(f"- **Est. Income Generated:** `${prem_total:,.2f}` upfront cash premium (`+{balanced_cc.get('yield_unassigned', 0.0):.1f}%` annualized yield).")
+                        lines.append(f"- **If Called Away:** Total realized gain of `+${((balanced_cc.get('strike', price) - price + mid_p) * 100.0 * num_contracts):,.2f}` (`+{balanced_cc.get('return_called_away', 0.0):.1f}%`).")
+                        lines.append(f"- **Alternative Tiers:** Conservative Strike: `${cons_cc.get('strike', 0.0):.2f}` (`${cons_cc.get('mid', 0.0)*100*num_contracts:,.2f}` income) | Aggressive Strike: `${agg_cc.get('strike', 0.0):.2f}` (`${agg_cc.get('mid', 0.0)*100*num_contracts:,.2f}` income).")
+                else:
+                    lines.append(f"- *Note:* Covered calls require increments of 100 shares per contract. You hold {shares_held} shares. Accumulate {100 - remainder} more shares to sell 1 covered call contract.")
+                lines.append("")
+
+            if cash_available > 0:
+                balanced_csp = csp_matrix.get("balanced", {})
+                cons_csp = csp_matrix.get("conservative", {})
+                agg_csp = csp_matrix.get("aggressive", {})
+                
+                strike = balanced_csp.get("strike", price * 0.95)
+                req_per_contract = strike * 100.0
+                num_csp = int(cash_available // req_per_contract)
+                lines.append(f"### Tailored Cash-Secured Put Strategy (${cash_available:,.2f} Cash Available)")
+                if num_csp > 0:
+                    mid_p = balanced_csp.get("mid", 0.0)
+                    prem_total = mid_p * 100.0 * num_csp
+                    unused_cash = cash_available - (num_csp * req_per_contract)
+                    lines.append(f"- **Cash-Secured Put Capacity:** `{num_csp} contract(s)` at `${strike:.2f}` strike (Collateral utilized: `${num_csp * req_per_contract:,.2f}`, Unused cash: `${unused_cash:,.2f}`).")
+                    lines.append(f"- **Target Strike:** `${strike:.2f}` ({balanced_csp.get('delta', 0.0):+.2f}Δ, ~{balanced_csp.get('otm_pct', 0.0):.1f}% discount) expiring in `{balanced_csp.get('dte', 30)}d`.")
+                    lines.append(f"- **Est. Cash Premium Harvest:** `+${prem_total:,.2f}` upfront credit (`+{balanced_csp.get('annualized_roc', 0.0):.1f}%` annualized ROC).")
+                    lines.append(f"- **Net Effective Purchase Price if Assigned:** `${balanced_csp.get('net_cost_basis', strike - mid_p):.2f}` (`{balanced_csp.get('discount_pct', 0.0):.1f}%` discount below current market price ${price:.2f}).")
+                    lines.append(f"- **Alternative Tiers:** Conservative Strike: `${cons_csp.get('strike', 0.0):.2f}` ({int(cash_available // (cons_csp.get('strike', strike)*100))} contracts, `+${cons_csp.get('annualized_roc', 0.0):.1f}%` ROC) | Aggressive Strike: `${agg_csp.get('strike', 0.0):.2f}` (`+${agg_csp.get('annualized_roc', 0.0):.1f}%` ROC).")
+                else:
+                    lines.append(f"- *Note:* 1 Cash-Secured Put contract at the balanced strike (${strike:.2f}) requires `${req_per_contract:,.2f}` in collateral. You have `${cash_available:,.2f}`.")
+                lines.append("")
 
         # ---------------------------------------------------------
         # 2. MACRO INDICATORS TABLE
@@ -213,7 +262,9 @@ class DashboardRenderer:
         cls,
         ticker_info: Dict[str, Any],
         indicators: Dict[str, Dict[str, Any]],
-        decision: Dict[str, Any]
+        decision: Dict[str, Any],
+        shares_held: int = 0,
+        cash_available: float = 0.0
     ) -> str:
         """
         Builds a rich, interactive HTML/JS/CSS Canvas Dashboard.
@@ -1330,7 +1381,7 @@ class DashboardRenderer:
                 <span>Session: {last_trade_date}</span>
             </div>
             <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
-                <span id="themeLabel">☀️ Light Mode</span>
+                <span id="themeLabel">Light Mode</span>
             </button>
         </div>
     </header>
@@ -2148,7 +2199,7 @@ class DashboardRenderer:
             currentTheme = theme;
             document.documentElement.setAttribute("data-theme", theme);
             const lbl = document.getElementById("themeLabel");
-            if (lbl) lbl.innerText = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
+            if (lbl) lbl.innerText = theme === "dark" ? "Light Mode" : "Dark Mode";
             localStorage.setItem("mf_theme", theme);
             
             if (hasChartJs) {{
