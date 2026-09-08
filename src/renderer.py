@@ -37,6 +37,7 @@ class DashboardRenderer:
         csp_matrix = playbook.get("cash_secured_put_matrix", {})
         uoa_list = playbook.get("unusual_activity", [])
         warnings = playbook.get("risk_warnings", [])
+        last_trade_date = ticker_info.get("last_trade_date", datetime.now().strftime("%Y-%m-%d"))
         
         timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
 
@@ -51,7 +52,8 @@ class DashboardRenderer:
         lines.append("| :--- | :--- | :--- | :--- |")
         lines.append(f"| **Current Price** | ${price:.2f} ({chg_str}) | **Stock Archetype** | {archetype_name} |")
         lines.append(f"| **Recommended Action** | {action_badge} | **Macro Alignment** | {decision.get('alignment_gauge', '')} |")
-        lines.append(f"| **Macro Regime** | {macro_regime.get('name', 'Balanced Rotation')} | **Timestamp** | {timestamp_str} |")
+        lines.append(f"| **Macro Regime** | {macro_regime.get('name', 'Balanced Rotation')} | **Last Session Close** | {last_trade_date} |")
+        lines.append(f"| **Analysis Timestamp** | {timestamp_str} | **Market Status** | Real-Time / Last Close ({last_trade_date}) |")
         lines.append("")
 
         # ---------------------------------------------------------
@@ -218,12 +220,14 @@ class DashboardRenderer:
         Includes theme toggle, interactive charts, 8 Macro indicator visualizers,
         comprehensive Options Selling matrices (Covered Calls & Cash-Secured Puts),
         live option chain table explorer, unusual options flow tracker, and dual-mode payoff simulator.
+        Features zero-dependency standalone native Canvas chart renderers with Chart.js enhancement.
         """
         ticker = ticker_info.get("ticker", "UNKNOWN")
         price = ticker_info.get("current_price", 0.0)
         chg = ticker_info.get("change_pct", 0.0)
         chg_str = f"+{chg:.2f}%" if chg >= 0 else f"{chg:.2f}%"
         chg_class = "positive" if chg >= 0 else "negative"
+        last_trade_date = ticker_info.get("last_trade_date", datetime.now().strftime("%Y-%m-%d"))
         
         action_badge = decision.get("signal_badge", "NEUTRAL")
         archetype_name = decision.get("archetype_name", "General Stock")
@@ -294,15 +298,15 @@ class DashboardRenderer:
                 </div>
                 <div class="ind-card-body">
                     <div class="ind-metric-row">
-                        <span class="label">Current Value</span>
+                        <span class="label" data-tooltip="Latest calculated cross-asset ratio value (e.g. QQQ/SPY, HYG/TLT).">Current Value <span class="info-tip">?</span></span>
                         <span class="val font-mono">{val:.4f}</span>
                     </div>
                     <div class="ind-metric-row">
-                        <span class="label">50-MA Status</span>
+                        <span class="label" data-tooltip="Indicates whether the ratio is above or below its 50-day moving average, signaling momentum direction.">50-MA Status <span class="info-tip">?</span></span>
                         <span class="val">{ma_stat}</span>
                     </div>
                     <div class="ind-metric-row">
-                        <span class="label">90d Percentile</span>
+                        <span class="label" data-tooltip="Ranks current ratio level relative to its last 90 trading days (0% = 90d low, 100% = 90d high).">90d Percentile <span class="info-tip">?</span></span>
                         <span class="val">{percentile:.1f}%</span>
                     </div>
                     <div class="progress-track">
@@ -433,7 +437,6 @@ class DashboardRenderer:
         all_calls = opt_chain.get("calls", [])
         all_puts = opt_chain.get("puts", [])
         
-        # Combine calls & puts for unified table
         chain_items = []
         for c in all_calls:
             chain_items.append({"type": "CALL", "data": c})
@@ -497,6 +500,7 @@ class DashboardRenderer:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Macro Flow Stock Navigator: {ticker}</title>
+    <!-- Optional Chart.js with automatic Zero-Dependency Canvas Engine Fallback -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {{
@@ -591,6 +595,19 @@ class DashboardRenderer:
             display: flex;
             align-items: center;
             gap: 12px;
+        }}
+
+        .market-status-pill {{
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }}
 
         .theme-toggle-btn {{
@@ -1087,6 +1104,12 @@ class DashboardRenderer:
             width: 100%;
         }}
 
+        .chart-container canvas, .chart-container-sm canvas {{
+            display: block;
+            width: 100%;
+            height: 100%;
+        }}
+
         .macro-selector-bar {{
             display: flex;
             gap: 8px;
@@ -1157,6 +1180,130 @@ class DashboardRenderer:
             border-color: var(--accent-blue);
         }}
 
+        
+        /* Educational Tooltip Styles */
+        [data-tooltip] {{
+            position: relative;
+            cursor: help;
+        }}
+
+        .info-tip {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--accent-blue);
+            font-size: 10px;
+            font-weight: 700;
+            cursor: help;
+            margin-left: 4px;
+            vertical-align: middle;
+            position: relative;
+        }}
+
+        .info-tip:hover {{
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            border-color: var(--accent-blue);
+        }}
+
+        [data-tooltip]::before {{
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background-color: #0b1120;
+            color: #f8fafc;
+            border: 1px solid #334155;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 400;
+            line-height: 1.4;
+            letter-spacing: normal;
+            text-transform: none;
+            white-space: normal;
+            width: max-content;
+            max-width: 260px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 999;
+            text-align: left;
+        }}
+
+        [data-theme="light"] [data-tooltip]::before, html[data-theme="light"] [data-tooltip]::before, body[data-theme="light"] [data-tooltip]::before, .theme-light [data-tooltip]::before {{
+            background-color: #ffffff;
+            color: #0f172a;
+            border-color: #cbd5e1;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }}
+
+        [data-tooltip]::after {{
+            content: "";
+            position: absolute;
+            bottom: calc(100% + 2px);
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #334155 transparent transparent transparent;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease;
+            z-index: 999;
+            pointer-events: none;
+        }}
+
+        [data-theme="light"] [data-tooltip]::after, html[data-theme="light"] [data-tooltip]::after, body[data-theme="light"] [data-tooltip]::after, .theme-light [data-tooltip]::after {{
+            border-color: #cbd5e1 transparent transparent transparent;
+        }}
+
+        [data-tooltip]:hover::before {{
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }}
+
+        [data-tooltip]:hover::after {{
+            opacity: 1;
+            visibility: visible;
+        }}
+
+        /* Tooltip position variants for edges */
+        .tip-left[data-tooltip]::before {{
+            left: 0;
+            transform: translateX(0) translateY(4px);
+        }}
+        .tip-left[data-tooltip]::after {{
+            left: 14px;
+            transform: translateX(0);
+        }}
+        .tip-left[data-tooltip]:hover::before {{
+            transform: translateX(0) translateY(0);
+        }}
+
+        .tip-right[data-tooltip]::before {{
+            left: auto;
+            right: 0;
+            transform: translateX(0) translateY(4px);
+        }}
+        .tip-right[data-tooltip]::after {{
+            left: auto;
+            right: 14px;
+            transform: translateX(0);
+        }}
+        .tip-right[data-tooltip]:hover::before {{
+            transform: translateX(0) translateY(0);
+        }}
+
         /* Footer */
         footer {{
             margin-top: 40px;
@@ -1178,8 +1325,12 @@ class DashboardRenderer:
             </div>
         </div>
         <div class="header-actions">
+            <div class="market-status-pill">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color: var(--accent-green);"></span>
+                <span>Session: {last_trade_date}</span>
+            </div>
             <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
-                <span id="themeLabel">Theme: Dark</span>
+                <span id="themeLabel">☀️ Light Mode</span>
             </button>
         </div>
     </header>
@@ -1195,28 +1346,28 @@ class DashboardRenderer:
             </div>
 
             <div class="banner-metrics">
-                <div class="metric-pill">
-                    <span class="label">Macro Signal</span>
+                <div class="metric-pill" data-tooltip="Overall directional posture (BUY, SELL, TRIM, ACCUMULATE, or NEUTRAL) synthesized from cross-asset macro tailwinds, moving average trends, and market regime context.">
+                    <span class="label">Macro Signal <span class="info-tip">?</span></span>
                     <span class="val">
                         <span class="badge {'badge-signal-buy' if 'BUY' in action_badge else ('badge-signal-sell' if 'SELL' in action_badge else 'badge-signal-neutral')}">
                             {action_badge}
                         </span>
                     </span>
                 </div>
-                <div class="metric-pill">
-                    <span class="label">Stock Archetype</span>
+                <div class="metric-pill" data-tooltip="The structural market classification for this equity (e.g. Mega-Cap Tech, High-Beta Growth, Cyclical, Defensive), determining which macro factors exert the strongest tailwinds or headwinds.">
+                    <span class="label">Stock Archetype <span class="info-tip">?</span></span>
                     <span class="val">{archetype_name}</span>
                 </div>
-                <div class="metric-pill">
-                    <span class="label">Macro Alignment</span>
+                <div class="metric-pill" data-tooltip="Quantifies net macro favorability on a scale of -100 to +100. Positive scores indicate macro tailwinds blowing in the stock's favor; negative scores denote macro headwinds.">
+                    <span class="label">Macro Alignment <span class="info-tip">?</span></span>
                     <span class="val font-mono">{decision.get('alignment_score', 0.0):+.1f} / 100</span>
                 </div>
-                <div class="metric-pill">
-                    <span class="label">Macro Regime</span>
+                <div class="metric-pill" data-tooltip="The prevailing macro environment (e.g. Goldilocks Growth, Stagflationary Pressure, Flight to Safety, Reflation / Expansion) driven by yields, commodities, credit, and dollar trends.">
+                    <span class="label">Macro Regime <span class="info-tip">?</span></span>
                     <span class="val">{macro_regime.get('name', 'Balanced Rotation')}</span>
                 </div>
-                <div class="metric-pill">
-                    <span class="label">IV vs 30d RV</span>
+                <div class="metric-pill" data-tooltip="Implied Volatility (forward option pricing) minus 30-day Realized Volatility (actual historical movement). A positive spread means options are priced rich—ideal for selling calls and puts for premium.">
+                    <span class="label">IV vs 30d RV <span class="info-tip">?</span></span>
                     <span class="val font-mono" style="color: {'var(--accent-green)' if opt_analytics.get('iv_rv_spread', 0) >= 0 else 'var(--accent-amber)'};">
                         {opt_analytics.get('iv_rv_spread', 0.0):+.1f}%
                     </span>
@@ -1252,20 +1403,20 @@ class DashboardRenderer:
                         <div style="font-size: 12px; color: var(--text-secondary);">{macro_regime.get('summary', '')}</div>
                     </div>
                     <div class="tactical-grid">
-                        <div class="tactical-cell">
-                            <div class="label">50-Day MA</div>
+                        <div class="tactical-cell" data-tooltip="50-day simple moving average: the medium-term price trend benchmark. Trading above indicates short-to-medium term bullish momentum.">
+                            <div class="label">50-Day MA <span class="info-tip">?</span></div>
                             <div class="val font-mono">${ticker_info.get('ma50', 0.0):.2f} ({ticker_info.get('diff_ma50_pct', 0.0):+.2f}%)</div>
                         </div>
-                        <div class="tactical-cell">
-                            <div class="label">200-Day MA</div>
+                        <div class="tactical-cell" data-tooltip="200-day simple moving average: the primary long-term institutional trend filter. Stocks above are in long-term uptrends.">
+                            <div class="label">200-Day MA <span class="info-tip">?</span></div>
                             <div class="val font-mono">${ticker_info.get('ma200', 0.0):.2f} ({ticker_info.get('diff_ma200_pct', 0.0):+.2f}%)</div>
                         </div>
-                        <div class="tactical-cell">
-                            <div class="label">Beta (vs SPY)</div>
+                        <div class="tactical-cell" data-tooltip="Measures sensitivity relative to the S&P 500. A beta of 1.5 means the stock moves ~1.5% for every 1.0% shift in the broad market.">
+                            <div class="label">Beta (vs SPY) <span class="info-tip">?</span></div>
                             <div class="val font-mono">{ticker_info.get('beta', 1.0)}</div>
                         </div>
-                        <div class="tactical-cell">
-                            <div class="label">30d Realized Vol</div>
+                        <div class="tactical-cell" data-tooltip="30-day annualized standard deviation of daily price returns. Reflects actual recent price turbulence.">
+                            <div class="label">30d Realized Vol <span class="info-tip">?</span></div>
                             <div class="val font-mono">{ticker_info.get('historical_vol_30d', 0.0)}%</div>
                         </div>
                     </div>
@@ -1309,16 +1460,16 @@ class DashboardRenderer:
                 <div class="playbook-strategy-name">{tactical.get('strategy', 'Neutral Options Overlay')}</div>
                 <div class="playbook-rationale">{tactical.get('rationale', '')}</div>
                 <div class="tactical-grid">
-                    <div class="tactical-cell">
-                        <div class="label">Target Strike</div>
+                    <div class="tactical-cell" data-tooltip="Optimal strike price selected for options selling based on stock archetype, volatility skew, and support/resistance levels.">
+                        <div class="label">Target Strike <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('optimal_strike', 'N/A')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Target Delta</div>
+                    <div class="tactical-cell" data-tooltip="Target delta range (e.g. 0.20Δ - 0.30Δ), providing high statistical win rates (70-80% probability of expiring worthless).">
+                        <div class="label">Target Delta <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('recommended_delta', 'N/A')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Target DTE</div>
+                    <div class="tactical-cell" data-tooltip="Days To Expiration (DTE): 30 to 45 days is the 'sweet spot' where theta time decay accelerates most rapidly while maintaining healthy premium.">
+                        <div class="label">Target DTE <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('target_dte', '30-45 DTE')}</div>
                     </div>
                     <div class="tactical-cell">
@@ -1351,7 +1502,7 @@ class DashboardRenderer:
                     <div class="card-header">
                         <div>
                             <div class="card-title">{ticker} Price Trend & Moving Averages</div>
-                            <div class="card-desc">Daily Close vs 50-MA & 200-MA</div>
+                            <div class="card-desc">Daily Close vs 50-MA & 200-MA (Data as of {last_trade_date} Close)</div>
                         </div>
                     </div>
                     <div class="chart-container">
@@ -1439,28 +1590,28 @@ class DashboardRenderer:
                 <div class="playbook-rationale">{tactical.get('rationale', '')}</div>
                 
                 <div class="tactical-grid" style="margin-top: 16px;">
-                    <div class="tactical-cell">
-                        <div class="label">Target Strike</div>
+                    <div class="tactical-cell" data-tooltip="Optimal strike price selected for options selling based on stock archetype, volatility skew, and support/resistance levels.">
+                        <div class="label">Target Strike <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('optimal_strike', 'N/A')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Target Delta</div>
+                    <div class="tactical-cell" data-tooltip="Target delta range (e.g. 0.20Δ - 0.30Δ), providing high statistical win rates (70-80% probability of expiring worthless).">
+                        <div class="label">Target Delta <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('recommended_delta', 'N/A')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Target DTE</div>
+                    <div class="tactical-cell" data-tooltip="Days To Expiration (DTE): 30 to 45 days is the 'sweet spot' where theta time decay accelerates most rapidly while maintaining healthy premium.">
+                        <div class="label">Target DTE <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('target_dte', '30-45 DTE')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Target Return</div>
+                    <div class="tactical-cell" data-tooltip="Estimated annualized return generated from recurring option premium harvesting.">
+                        <div class="label">Target Return <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('estimated_annualized_yield', 'N/A')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Profit Target</div>
+                    <div class="tactical-cell" data-tooltip="Best practice rule: Buy back and close the short option once 50% to 75% of maximum profit is captured to free up capital and remove tail risk.">
+                        <div class="label">Profit Target <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('profit_target', '50% of max')}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Stop Loss Rule</div>
+                    <div class="tactical-cell" data-tooltip="Defensive exit rule to prevent catastrophic losses when price moves strongly against the position (e.g. close or roll if contract value reaches 2x initial credit).">
+                        <div class="label">Stop Loss Rule <span class="info-tip">?</span></div>
                         <div class="val font-mono">{tactical.get('stop_loss_rule', '2x credit')}</div>
                     </div>
                 </div>
@@ -1475,28 +1626,28 @@ class DashboardRenderer:
                     </div>
                 </div>
                 <div class="grid-6">
-                    <div class="tactical-cell">
-                        <div class="label">IV (ATM) vs 30d HV</div>
+                    <div class="tactical-cell" data-tooltip="ATM Implied Volatility (annualized volatility implied by option prices) vs 30-day Historical Volatility (realized stock swings).">
+                        <div class="label">IV (ATM) vs 30d HV <span class="info-tip">?</span></div>
                         <div class="val font-mono">{opt_analytics.get('iv_atm', 0.0):.1f}% <span style="font-size: 11px; color: var(--text-secondary);">/ {opt_analytics.get('hv_30d', 0.0):.1f}%</span></div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">IV Rank / Percentile</div>
+                    <div class="tactical-cell" data-tooltip="IV Rank measures where current IV sits between the 52-week high and low (0-100%). IV Percentile is the percentage of days in the past year IV was lower. High values (>50%) favor options selling.">
+                        <div class="label">IV Rank / Percentile <span class="info-tip">?</span></div>
                         <div class="val font-mono">{opt_analytics.get('iv_rank', 0.0):.1f}% <span style="font-size: 11px; color: var(--text-secondary);">/ {opt_analytics.get('iv_percentile', 0.0):.1f}%</span></div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">IV - RV Spread</div>
+                    <div class="tactical-cell" data-tooltip="The Volatility Risk Premium (VRP). When IV exceeds Realized Vol, options are statistically overpriced, offering an edge to sellers of Covered Calls and Cash-Secured Puts.">
+                        <div class="label">IV - RV Spread <span class="info-tip">?</span></div>
                         <div class="val font-mono" style="color: {'var(--accent-green)' if opt_analytics.get('iv_rv_spread', 0) >= 0 else 'var(--accent-amber)'};">{opt_analytics.get('iv_rv_spread', 0.0):+.1f}%</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Put/Call Ratio (Vol/OI)</div>
+                    <div class="tactical-cell" data-tooltip="Ratio of traded Put volume to Call volume, and open Put contracts to Call contracts. Ratios > 1.0 indicate defensive hedging or bearish sentiment; < 0.7 reflects bullish call flow.">
+                        <div class="label">Put/Call Ratio (Vol/OI) <span class="info-tip">?</span></div>
                         <div class="val font-mono">{opt_analytics.get('pcr_volume', 1.0):.2f} <span style="font-size: 11px; color: var(--text-secondary);">/ {opt_analytics.get('pcr_open_interest', 1.0):.2f}</span></div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Max Pain Strike</div>
+                    <div class="tactical-cell" data-tooltip="The strike price where option buyers lose the most money (and option sellers make the most) at expiration. Stock prices often gravitate toward Max Pain into expiration.">
+                        <div class="label">Max Pain Strike <span class="info-tip">?</span></div>
                         <div class="val font-mono" style="color: var(--accent-cyan);">${opt_analytics.get('max_pain_strike', price):.2f}</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">30d Expected Move (±1σ)</div>
+                    <div class="tactical-cell" data-tooltip="The 1-standard-deviation price range implied by options market pricing over the next 30 days (~68% statistical probability range).">
+                        <div class="label">30d Expected Move (±1σ) <span class="info-tip">?</span></div>
                         <div class="val font-mono" style="font-size: 13px;">±${opt_analytics.get('expected_move_30d', 0.0):.2f} <span style="font-size: 11px; color: var(--text-secondary);">[${opt_analytics.get('expected_move_lower', 0.0):.2f}-${opt_analytics.get('expected_move_upper', 0.0):.2f}]</span></div>
                     </div>
                 </div>
@@ -1517,15 +1668,15 @@ class DashboardRenderer:
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Tier</th>
-                                    <th>Strike</th>
-                                    <th>Mid</th>
-                                    <th>Δ</th>
-                                    <th>Θ</th>
-                                    <th>OTM %</th>
-                                    <th>Yield Unassigned</th>
-                                    <th>Return Called</th>
-                                    <th>Cushion</th>
+                                    <th data-tooltip="Risk tier: Conservative (low probability of assignment), Balanced (optimal risk/reward), Aggressive (maximum premium income).">Tier <span class="info-tip">?</span></th>
+                                    <th data-tooltip="The agreed price at which your shares will be sold if assigned.">Strike <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Midpoint of current Bid and Ask price for the option contract.">Mid <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Delta (Δ): Sensitivity of option price to a $1 move in the stock. Also approximates the probability of expiring In-The-Money (e.g. 0.30Δ ≈ 30% assignment risk).">Δ <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Theta (Θ): Daily time decay in dollars per share collected by the option seller as expiration approaches.">Θ <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Percentage distance from current stock price to the strike price (Out-of-The-Money buffer).">OTM % <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Annualized cash yield if the stock stays below the strike price and expires worthless (keeping 100% of shares and premium).">Yield Unassigned <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Total return (premium collected + stock capital gain up to strike) if the shares get called away at expiration.">Return Called <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Downside cushion: the percentage drop the stock can suffer before you incur a net loss on the position (protected by the collected premium).">Cushion <span class="info-tip">?</span></th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -1548,16 +1699,16 @@ class DashboardRenderer:
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Tier</th>
-                                    <th>Strike</th>
-                                    <th>Mid</th>
-                                    <th>Δ</th>
-                                    <th>Θ</th>
-                                    <th>OTM %</th>
-                                    <th>Collateral</th>
-                                    <th>Net Basis</th>
-                                    <th>Discount</th>
-                                    <th>Ann. ROC</th>
+                                    <th data-tooltip="Risk tier: Conservative (~0.20Δ, low assignment probability), Balanced (~0.30Δ), Aggressive (~0.40Δ, highest premium).">Tier <span class="info-tip">?</span></th>
+                                    <th data-tooltip="The strike price at which you are obligated to buy 100 shares if assigned.">Strike <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Option premium collected per share (multiply by 100 for total cash received per contract).">Mid <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Delta (Δ): Probability of put expiring ITM and resulting in stock purchase at the strike.">Δ <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Theta (Θ): Daily time decay earned by the put seller each day the stock stays above strike.">Θ <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Percentage discount of the strike price below current market price.">OTM % <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Cash required to hold in your account to guarantee purchasing 100 shares at the strike (Strike x 100).">Collateral <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Effective purchase price per share if assigned (Strike Price minus Premium Received).">Net Basis <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Net percentage discount compared to current spot market price if assigned shares.">Discount <span class="info-tip">?</span></th>
+                                    <th data-tooltip="Annualized Return on Capital (ROC) earned on the cash collateral held if the put expires unassigned.">Ann. ROC <span class="info-tip">?</span></th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -1582,14 +1733,14 @@ class DashboardRenderer:
                     <table id="uoaTable">
                         <thead>
                             <tr>
-                                <th>Type</th>
+                                <th data-tooltip="Option contract type: Call (bullish right to buy) or Put (bearish right to sell / hedge).">Type <span class="info-tip">?</span></th>
                                 <th>Contract</th>
                                 <th>Strike</th>
-                                <th>Volume</th>
-                                <th>Open Int</th>
-                                <th>Vol / OI</th>
-                                <th>Est. Dollar Flow</th>
-                                <th>Institutional Flow Sentiment</th>
+                                <th data-tooltip="Number of option contracts traded during the current session.">Volume <span class="info-tip">?</span></th>
+                                <th data-tooltip="Total number of outstanding, active option contracts held by market participants overnight.">Open Int <span class="info-tip">?</span></th>
+                                <th data-tooltip="Volume to Open Interest Ratio. Ratios above 1.5x indicate new institutional opening positioning rather than closing existing trades.">Vol / OI <span class="info-tip">?</span></th>
+                                <th data-tooltip="Estimated total institutional capital spent on this contract during the session (Volume x Mid x 100).">Est. Dollar Flow <span class="info-tip">?</span></th>
+                                <th data-tooltip="Analytical interpretation of aggressive block buy sweeps vs defensive hedging flow.">Institutional Flow Sentiment <span class="info-tip">?</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1624,19 +1775,19 @@ class DashboardRenderer:
                     <table id="optionsChainTable">
                         <thead style="position: sticky; top: 0; z-index: 10;">
                             <tr>
-                                <th>Type</th>
-                                <th>Strike</th>
-                                <th>Bid</th>
-                                <th>Ask</th>
-                                <th>Mid</th>
-                                <th>Delta (Δ)</th>
-                                <th>Theta (Θ)</th>
-                                <th>Volume</th>
-                                <th>Open Int</th>
-                                <th>Vol / OI</th>
-                                <th>IV %</th>
-                                <th>Status</th>
-                                <th>Simulate</th>
+                                <th data-tooltip="Call option (right to buy) or Put option (right to sell).">Type <span class="info-tip">?</span></th>
+                                <th data-tooltip="Contract exercise strike price.">Strike <span class="info-tip">?</span></th>
+                                <th data-tooltip="Highest price buyers are willing to pay for this contract.">Bid <span class="info-tip">?</span></th>
+                                <th data-tooltip="Lowest price sellers are willing to accept for this contract.">Ask <span class="info-tip">?</span></th>
+                                <th data-tooltip="Fair value midpoint between Bid and Ask.">Mid <span class="info-tip">?</span></th>
+                                <th data-tooltip="Delta (Δ): Price sensitivity and rough probability of finishing In-The-Money.">Delta (Δ) <span class="info-tip">?</span></th>
+                                <th data-tooltip="Theta (Θ): Dollar amount this option loses per day due to time decay.">Theta (Θ) <span class="info-tip">?</span></th>
+                                <th data-tooltip="Total contracts traded today.">Volume <span class="info-tip">?</span></th>
+                                <th data-tooltip="Total active open contracts.">Open Int <span class="info-tip">?</span></th>
+                                <th data-tooltip="Volume-to-Open Interest ratio (elevated indicates aggressive institutional activity).">Vol / OI <span class="info-tip">?</span></th>
+                                <th data-tooltip="Implied Volatility priced into this specific strike.">IV % <span class="info-tip">?</span></th>
+                                <th data-tooltip="ITM (In The Money) has intrinsic value; OTM (Out of The Money) consists purely of time value.">Status <span class="info-tip">?</span></th>
+                                <th data-tooltip="Click to immediately load this strike and premium into the interactive Payoff Simulator below.">Simulate</th>
                             </tr>
                         </thead>
                         <tbody id="chainTableBody">
@@ -1696,12 +1847,12 @@ class DashboardRenderer:
                         <div class="label">Simulated Net P&L</div>
                         <div id="simDollarPnL" class="val font-mono" style="color: var(--accent-green);">$0.00</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Return on Capital (ROC)</div>
+                    <div class="tactical-cell" data-tooltip="Percentage return earned on the capital committed (Stock cost for Covered Calls; Cash collateral for Cash-Secured Puts).">
+                        <div class="label">Return on Capital (ROC) <span class="info-tip">?</span></div>
                         <div id="simROCPct" class="val font-mono" style="color: var(--accent-green);">0.0%</div>
                     </div>
-                    <div class="tactical-cell">
-                        <div class="label">Breakeven Price</div>
+                    <div class="tactical-cell" data-tooltip="The underlying stock price where your net profit equals exactly $0.00 at expiration. Below this price (for long stock/puts), you enter net loss territory.">
+                        <div class="label">Breakeven Price <span class="info-tip">?</span></div>
                         <div id="simBreakeven" class="val font-mono">${price * 0.95:.2f}</div>
                     </div>
                     <div class="tactical-cell">
@@ -1743,7 +1894,13 @@ class DashboardRenderer:
         const DECISION_DATA = {decision_json};
         const PLAYBOOK_DATA = {playbook_json};
         
-        let currentTheme = localStorage.getItem("mf_theme") || "dark";
+        let currentTheme = (function() {{
+            try {{
+                return localStorage.getItem("mf_theme") || "dark";
+            }} catch(e) {{
+                return "dark";
+            }}
+        }})();
         let priceChartInstance = null;
         let radarChartInstance = null;
         let focusIndicatorChartInstance = null;
@@ -1752,14 +1909,253 @@ class DashboardRenderer:
         let currentFocusKey = "{first_ind_key}";
         let currentSimStrategy = "CC"; // 'CC' or 'CSP'
 
+        // Check if Chart.js is loaded from external CDN
+        const hasChartJs = typeof Chart !== "undefined";
+
+        // Native High-DPI Canvas Helper
+        function setupCanvasContext(canvas) {{
+            if (!canvas) return null;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width || canvas.parentElement.clientWidth || 300;
+            const height = rect.height || canvas.parentElement.clientHeight || 150;
+            
+            canvas.width = Math.floor(width * dpr);
+            canvas.height = Math.floor(height * dpr);
+            
+            const ctx = canvas.getContext("2d");
+            ctx.resetTransform && ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+            return {{ ctx, width, height }};
+        }}
+
+        // Native Canvas Chart Renderers (Zero-Dependency Engine)
+        function drawNativeLineChart(canvasId, datasets, xLabels, options = {{}}) {{
+            const canvas = document.getElementById(canvasId);
+            const setup = setupCanvasContext(canvas);
+            if (!setup) return;
+            const {{ ctx, width, height }} = setup;
+            const isDark = currentTheme === "dark";
+            
+            const padLeft = options.padLeft !== undefined ? options.padLeft : 45;
+            const padRight = options.padRight !== undefined ? options.padRight : 15;
+            const padTop = options.padTop !== undefined ? options.padTop : 20;
+            const padBottom = options.padBottom !== undefined ? options.padBottom : 25;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+            
+            if (plotW <= 10 || plotH <= 10) return;
+
+            // Compute global min & max
+            let minVal = Infinity;
+            let maxVal = -Infinity;
+            datasets.forEach(ds => {{
+                (ds.data || []).forEach(v => {{
+                    if (v !== null && !isNaN(v)) {{
+                        if (v < minVal) minVal = v;
+                        if (v > maxVal) maxVal = v;
+                    }}
+                }});
+            }});
+            if (minVal === Infinity) {{ minVal = 0; maxVal = 100; }}
+            const valSpan = maxVal - minVal || 1;
+            minVal = minVal - valSpan * 0.05;
+            maxVal = maxVal + valSpan * 0.05;
+            const range = maxVal - minVal || 1;
+
+            const gridColor = isDark ? "rgba(36, 48, 70, 0.6)" : "rgba(203, 213, 225, 0.6)";
+            const textColor = isDark ? "#94a3b8" : "#64748b";
+
+            // Grid lines & Y Ticks
+            const yTicks = options.yTicks || 4;
+            ctx.font = "10px ui-monospace, monospace";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+
+            for (let i = 0; i <= yTicks; i++) {{
+                const y = padTop + (plotH / yTicks) * i;
+                const v = maxVal - (range / yTicks) * i;
+                
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = 1;
+                ctx.setLineDash(options.gridDash || [2, 2]);
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(padLeft + plotW, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = textColor;
+                const fmtVal = Math.abs(v) < 10 ? v.toFixed(3) : v.toFixed(1);
+                ctx.fillText(options.yPrefix ? options.yPrefix + fmtVal : fmtVal, padLeft - 6, y);
+            }}
+
+            // Draw Datasets
+            datasets.forEach(ds => {{
+                const pts = ds.data || [];
+                if (pts.length < 2) return;
+                const stepX = plotW / (pts.length - 1);
+
+                // Area gradient fill
+                if (ds.fill && ds.fillColor) {{
+                    const grad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+                    grad.addColorStop(0, ds.fillColor);
+                    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(padLeft, padTop + plotH);
+                    pts.forEach((p, idx) => {{
+                        const px = padLeft + idx * stepX;
+                        const py = padTop + plotH - ((p - minVal) / range) * plotH;
+                        ctx.lineTo(px, py);
+                    }});
+                    ctx.lineTo(padLeft + plotW, padTop + plotH);
+                    ctx.closePath();
+                    ctx.fill();
+                }}
+
+                // Line Stroke
+                ctx.strokeStyle = ds.color || "#3b82f6";
+                ctx.lineWidth = ds.lineWidth || 2;
+                if (ds.dash) ctx.setLineDash(ds.dash);
+                else ctx.setLineDash([]);
+                
+                ctx.beginPath();
+                pts.forEach((p, idx) => {{
+                    const px = padLeft + idx * stepX;
+                    const py = padTop + plotH - ((p - minVal) / range) * plotH;
+                    if (idx === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }});
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }});
+
+            // X-Axis Labels
+            if (xLabels && xLabels.length > 0) {{
+                ctx.fillStyle = textColor;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "top";
+                const numLabels = Math.min(5, xLabels.length);
+                for (let i = 0; i < numLabels; i++) {{
+                    const idx = Math.floor((i / (numLabels - 1)) * (xLabels.length - 1));
+                    const px = padLeft + (idx / (xLabels.length - 1)) * plotW;
+                    const lbl = xLabels[idx] || "";
+                    ctx.fillText(lbl.length > 7 ? lbl.slice(5) : lbl, px, padTop + plotH + 6);
+                }}
+            }}
+        }}
+
+        function drawNativeRadarChart(canvasId, indicators) {{
+            const canvas = document.getElementById(canvasId);
+            const setup = setupCanvasContext(canvas);
+            if (!setup) return;
+            const {{ ctx, width, height }} = setup;
+            const isDark = currentTheme === "dark";
+
+            const cx = width / 2;
+            const cy = height / 2;
+            const radius = Math.min(cx, cy) - 36;
+            if (radius <= 10) return;
+
+            const gridColor = isDark ? "rgba(36, 48, 70, 0.8)" : "rgba(203, 213, 225, 0.8)";
+            const textColor = isDark ? "#cbd5e1" : "#475569";
+            const keys = Object.keys(indicators);
+            const numPoints = keys.length || 8;
+            const angleStep = (Math.PI * 2) / numPoints;
+
+            // Concentric Polygon Rings
+            const rings = 4;
+            for (let r = 1; r <= rings; r++) {{
+                const ringRadius = (radius / rings) * r;
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i < numPoints; i++) {{
+                    const a = i * angleStep - Math.PI / 2;
+                    const x = cx + Math.cos(a) * ringRadius;
+                    const y = cy + Math.sin(a) * ringRadius;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }}
+                ctx.closePath();
+                ctx.stroke();
+            }}
+
+            // Spokes & Text Labels
+            ctx.font = "11px -apple-system, sans-serif";
+            keys.forEach((k, i) => {{
+                const ind = indicators[k];
+                const label = ind.ratio_tickers || ind.display_name || k;
+                const a = i * angleStep - Math.PI / 2;
+                
+                // Spoke
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius);
+                ctx.stroke();
+
+                // Label
+                const lx = cx + Math.cos(a) * (radius + 18);
+                const ly = cy + Math.sin(a) * (radius + 18);
+                ctx.fillStyle = textColor;
+                ctx.textAlign = Math.abs(Math.cos(a)) < 0.2 ? "center" : (Math.cos(a) > 0 ? "left" : "right");
+                ctx.textBaseline = "middle";
+                ctx.fillText(label, lx, ly);
+            }});
+
+            // Data Polygon Fill
+            const dataCoords = [];
+            keys.forEach((k, i) => {{
+                const ind = indicators[k];
+                const pctl = Math.max(0, Math.min(100, ind.percentile_90d || 50));
+                const dRadius = (radius * pctl) / 100;
+                const a = i * angleStep - Math.PI / 2;
+                dataCoords.push({{
+                    x: cx + Math.cos(a) * dRadius,
+                    y: cy + Math.sin(a) * dRadius
+                }});
+            }});
+
+            if (dataCoords.length > 2) {{
+                ctx.fillStyle = "rgba(6, 182, 212, 0.25)";
+                ctx.strokeStyle = "#06b6d4";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                dataCoords.forEach((pt, i) => {{
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }});
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Dots
+                ctx.fillStyle = "#ffffff";
+                dataCoords.forEach(pt => {{
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }});
+            }}
+        }}
+
         // Theme Toggle
         function applyTheme(theme) {{
             currentTheme = theme;
             document.documentElement.setAttribute("data-theme", theme);
             const lbl = document.getElementById("themeLabel");
-            if (lbl) lbl.innerText = theme === "dark" ? "Theme: Dark" : "Theme: Light";
+            if (lbl) lbl.innerText = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
             localStorage.setItem("mf_theme", theme);
-            updateChartTheme();
+            
+            if (hasChartJs) {{
+                updateChartTheme();
+            }} else {{
+                renderAllNativeCharts();
+            }}
         }}
 
         function toggleTheme() {{
@@ -1844,13 +2240,8 @@ class DashboardRenderer:
         }}
 
         function renderFocusChart(key) {{
-            if (typeof Chart === "undefined") return;
             const ind = INDICATORS_DATA[key];
             if (!ind) return;
-
-            const isDark = currentTheme === "dark";
-            const textColor = isDark ? "#94a3b8" : "#475569";
-            const gridColor = isDark ? "#243046" : "#e2e8f0";
 
             const dates = (ind.history_dates && ind.history_dates.length > 0) ? ind.history_dates : (HISTORY_DATA.dates || Array.from({{length: (ind.history || []).length}}, (_, i) => `D-${{ind.history.length - i}}`));
             const values = ind.history || [];
@@ -1859,64 +2250,119 @@ class DashboardRenderer:
             const isBullish = ind.ma50_status.includes("Above") || ind.trend_signal.includes("Rising");
             const isBearish = ind.ma50_status.includes("Below") || ind.trend_signal.includes("Falling");
             const lineColor = isBullish ? "#10b981" : (isBearish ? "#ef4444" : "#06b6d4");
-            const fillColor = isBullish ? "rgba(16, 185, 129, 0.08)" : (isBearish ? "rgba(239, 68, 68, 0.08)" : "rgba(6, 182, 212, 0.08)");
+            const fillColor = isBullish ? "rgba(16, 185, 129, 0.12)" : (isBearish ? "rgba(239, 68, 68, 0.12)" : "rgba(6, 182, 212, 0.12)");
 
-            const canvas = document.getElementById("focusIndicatorChart");
-            if (!canvas) return;
-            const ctx = canvas.getContext("2d");
+            if (hasChartJs) {{
+                try {{
+                    const isDark = currentTheme === "dark";
+                    const textColor = isDark ? "#94a3b8" : "#475569";
+                    const gridColor = isDark ? "#243046" : "#e2e8f0";
 
-            if (focusIndicatorChartInstance) {{
-                focusIndicatorChartInstance.destroy();
-                focusIndicatorChartInstance = null;
+                    const canvas = document.getElementById("focusIndicatorChart");
+                    if (!canvas) return;
+                    const ctx = canvas.getContext("2d");
+
+                    if (focusIndicatorChartInstance) {{
+                        focusIndicatorChartInstance.destroy();
+                        focusIndicatorChartInstance = null;
+                    }}
+
+                    focusIndicatorChartInstance = new Chart(ctx, {{
+                        type: "line",
+                        data: {{
+                            labels: dates,
+                            datasets: [
+                                {{
+                                    label: `${{ind.display_name}} (${{ind.ratio_tickers}})`,
+                                    data: values,
+                                    borderColor: lineColor,
+                                    backgroundColor: fillColor,
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.15
+                                }},
+                                {{
+                                    label: "50-Day MA",
+                                    data: ma50.length > 0 ? ma50 : Array(values.length).fill(ind.ma50),
+                                    borderColor: "#f59e0b",
+                                    borderWidth: 1.5,
+                                    borderDash: [4, 4],
+                                    fill: false,
+                                    pointRadius: 0
+                                }}
+                            ]
+                        }},
+                        options: {{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {{ mode: "index", intersect: false }},
+                            scales: {{
+                                x: {{ grid: {{ color: gridColor }}, ticks: {{ color: textColor, maxTicksLimit: 8 }} }},
+                                y: {{ grid: {{ color: gridColor }}, ticks: {{ color: textColor }} }}
+                            }},
+                            plugins: {{
+                                legend: {{ labels: {{ color: textColor }} }}
+                            }}
+                        }}
+                    }});
+                    return;
+                }} catch (e) {{
+                    console.warn("Chart.js failed, falling back to native canvas:", e);
+                }}
             }}
 
-            focusIndicatorChartInstance = new Chart(ctx, {{
-                type: "line",
-                data: {{
-                    labels: dates,
-                    datasets: [
-                        {{
-                            label: `${{ind.display_name}} (${{ind.ratio_tickers}})`,
-                            data: values,
-                            borderColor: lineColor,
-                            backgroundColor: fillColor,
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.15
-                        }},
-                        {{
-                            label: "50-Day MA",
-                            data: ma50.length > 0 ? ma50 : Array(values.length).fill(ind.ma50),
-                            borderColor: "#f59e0b",
-                            borderWidth: 1.5,
-                            borderDash: [4, 4],
-                            fill: false,
-                            pointRadius: 0
-                        }}
-                    ]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {{ mode: "index", intersect: false }},
-                    scales: {{
-                        x: {{ grid: {{ color: gridColor }}, ticks: {{ color: textColor, maxTicksLimit: 8 }} }},
-                        y: {{ grid: {{ color: gridColor }}, ticks: {{ color: textColor }} }}
-                    }},
-                    plugins: {{
-                        legend: {{ labels: {{ color: textColor }} }}
-                    }}
-                }}
-            }});
+            // Native Canvas Fallback
+            drawNativeLineChart("focusIndicatorChart", [
+                {{ data: values, color: lineColor, fillColor: fillColor, fill: true, lineWidth: 2.5 }},
+                {{ data: ma50, color: "#f59e0b", dash: [4, 4], lineWidth: 1.5 }}
+            ], dates, {{ padLeft: 55, yTicks: 4 }});
         }}
 
         // Initialize All Trend & Factor Charts (Tab 3)
         function initCharts() {{
-            if (typeof Chart === "undefined") {{
-                console.warn("Chart.js not loaded.");
-                return;
+            if (hasChartJs) {{
+                try {{
+                    initChartJsTrendCharts();
+                    return;
+                }} catch (e) {{
+                    console.warn("Chart.js initialization failed, utilizing native canvas engine:", e);
+                }}
+            }}
+            renderAllNativeCharts();
+        }}
+
+        function renderAllNativeCharts() {{
+            // 1. Target Stock Price Chart
+            if (HISTORY_DATA.prices && HISTORY_DATA.prices.length > 0) {{
+                drawNativeLineChart("priceChart", [
+                    {{ data: HISTORY_DATA.prices, color: "#3b82f6", fillColor: "rgba(59, 130, 246, 0.15)", fill: true, lineWidth: 2 }},
+                    {{ data: HISTORY_DATA.ma50, color: "#10b981", lineWidth: 1.5 }},
+                    {{ data: HISTORY_DATA.ma200, color: "#f59e0b", dash: [4, 4], lineWidth: 1.5 }}
+                ], HISTORY_DATA.dates, {{ padLeft: 55, yPrefix: "$", yTicks: 5 }});
             }}
 
+            // 2. Macro Radar Chart
+            drawNativeRadarChart("macroRadarChart", INDICATORS_DATA);
+
+            // 3. Focus Indicator Chart
+            renderFocusChart(currentFocusKey);
+
+            // 4. Mini Matrix Sparkline Charts
+            for (const key in INDICATORS_DATA) {{
+                const ind = INDICATORS_DATA[key];
+                const isBullish = ind.ma50_status.includes("Above") || ind.trend_signal.includes("Rising");
+                const isBearish = ind.ma50_status.includes("Below") || ind.trend_signal.includes("Falling");
+                const lineColor = isBullish ? "#10b981" : (isBearish ? "#ef4444" : "#06b6d4");
+                const fillColor = isBullish ? "rgba(16, 185, 129, 0.1)" : (isBearish ? "rgba(239, 68, 68, 0.1)" : "rgba(6, 182, 212, 0.1)");
+                
+                drawNativeLineChart(`chart_${{key}}`, [
+                    {{ data: ind.history || [], color: lineColor, fillColor: fillColor, fill: true, lineWidth: 1.5 }},
+                    {{ data: ind.history_ma50 || [], color: "#f59e0b", dash: [3, 3], lineWidth: 1 }}
+                ], [], {{ padLeft: 38, padRight: 10, padTop: 10, padBottom: 10, yTicks: 3 }});
+            }}
+        }}
+
+        function initChartJsTrendCharts() {{
             const isDark = currentTheme === "dark";
             const textColor = isDark ? "#94a3b8" : "#475569";
             const gridColor = isDark ? "#243046" : "#e2e8f0";
@@ -2038,7 +2484,7 @@ class DashboardRenderer:
                 focusIndicatorChartInstance.update();
             }}
 
-            // 4. All 8 Macro Indicator Trend Charts in Grid
+            // 4. Grid Charts
             initMacroIndicatorGridCharts(isDark, textColor, gridColor);
         }}
 
@@ -2173,7 +2619,18 @@ class DashboardRenderer:
         }}
 
         function initPayoffChart() {{
-            if (typeof Chart === "undefined") return;
+            if (hasChartJs) {{
+                try {{
+                    initChartJsPayoff();
+                    return;
+                }} catch (e) {{
+                    console.warn("Chart.js payoff init failed, using native canvas:", e);
+                }}
+            }}
+            updateSimPayoff();
+        }}
+
+        function initChartJsPayoff() {{
             const canvas = document.getElementById("payoffChart");
             if (!canvas) return;
 
@@ -2306,40 +2763,45 @@ class DashboardRenderer:
             document.getElementById("simPnLStatus").innerText = statusText;
             document.getElementById("simPnLStatus").style.color = statusColor;
 
-            // Recompute curve for Chart
-            if (payoffChartInstance) {{
-                const low = Math.min(stockCost, strike) * 0.70;
-                const high = Math.max(stockCost, strike) * 1.30;
-                const step = (high - low) / 40;
-                const prices = [];
-                const pnlValues = [];
-                const zeroLine = [];
+            // Recompute curve
+            const low = Math.min(stockCost, strike) * 0.70;
+            const high = Math.max(stockCost, strike) * 1.30;
+            const step = (high - low) / 40;
+            const prices = [];
+            const pnlValues = [];
+            const zeroLine = [];
 
-                for (let p = low; p <= high; p += step) {{
-                    prices.push(p.toFixed(2));
-                    zeroLine.push(0);
-                    let pnl = 0;
-                    if (currentSimStrategy === "CC") {{
-                        if (p >= strike) {{
-                            pnl = (strike - stockCost + premium) * 100.0;
-                        }} else {{
-                            pnl = (p - stockCost + premium) * 100.0;
-                        }}
+            for (let p = low; p <= high; p += step) {{
+                prices.push(p.toFixed(2));
+                zeroLine.push(0);
+                let pnl = 0;
+                if (currentSimStrategy === "CC") {{
+                    if (p >= strike) {{
+                        pnl = (strike - stockCost + premium) * 100.0;
                     }} else {{
-                        if (p >= strike) {{
-                            pnl = premium * 100.0;
-                        }} else {{
-                            pnl = (premium - (strike - p)) * 100.0;
-                        }}
+                        pnl = (p - stockCost + premium) * 100.0;
                     }}
-                    pnlValues.push(pnl.toFixed(2));
+                }} else {{
+                    if (p >= strike) {{
+                        pnl = premium * 100.0;
+                    }} else {{
+                        pnl = (premium - (strike - p)) * 100.0;
+                    }}
                 }}
+                pnlValues.push(pnl.toFixed(2));
+            }}
 
+            if (payoffChartInstance && hasChartJs) {{
                 payoffChartInstance.data.labels = prices;
                 payoffChartInstance.data.datasets[0].data = pnlValues;
                 payoffChartInstance.data.datasets[0].label = currentSimStrategy === "CC" ? "Covered Call Net P&L ($)" : "Cash-Secured Put Net P&L ($)";
                 payoffChartInstance.data.datasets[1].data = zeroLine;
                 payoffChartInstance.update();
+            }} else {{
+                drawNativeLineChart("payoffChart", [
+                    {{ data: pnlValues.map(v => parseFloat(v)), color: "#10b981", fillColor: "rgba(16, 185, 129, 0.15)", fill: true, lineWidth: 2.5 }},
+                    {{ data: zeroLine, color: "#64748b", dash: [4, 4], lineWidth: 1 }}
+                ], prices, {{ padLeft: 60, yPrefix: "$", yTicks: 5 }});
             }}
         }}
 
@@ -2380,14 +2842,22 @@ class DashboardRenderer:
 
         // Window resize observer
         window.addEventListener("resize", () => {{
-            [priceChartInstance, radarChartInstance, focusIndicatorChartInstance, payoffChartInstance, ...Object.values(indicatorChartInstances)].forEach(chart => {{
-                if (chart) chart.resize();
-            }});
+            if (hasChartJs) {{
+                [priceChartInstance, radarChartInstance, focusIndicatorChartInstance, payoffChartInstance, ...Object.values(indicatorChartInstances)].forEach(chart => {{
+                    if (chart) chart.resize();
+                }});
+            }} else {{
+                renderAllNativeCharts();
+            }}
         }});
 
         // Initialize on load
         document.addEventListener("DOMContentLoaded", () => {{
             applyTheme(currentTheme);
+            // Pre-render native charts so they are immediately visible on tab switch
+            setTimeout(() => {{
+                if (!hasChartJs) renderAllNativeCharts();
+            }}, 50);
         }});
     </script>
 </body>

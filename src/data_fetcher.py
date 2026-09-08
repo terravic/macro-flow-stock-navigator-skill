@@ -168,12 +168,12 @@ class MarketDataFetcher:
         archetype_data = STOCK_ARCHETYPES.get(archetype_key, STOCK_ARCHETYPES["MEGA_CAP_TECH"])
 
         # Historical series slice for interactive visualization
-        # Historical series slice for interactive visualization
         tail_len = min(60, len(target_series))
         dates_tail = [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)[:10] for d in target_series.index[-tail_len:]]
         closes_tail = [round(float(c), 2) for c in target_series.iloc[-tail_len:]]
         ma50_tail = [round(float(m), 2) if not pd.isna(m) else round(float(closes_tail[i]), 2) for i, m in enumerate(ma50_series.iloc[-tail_len:])]
         ma200_tail = [round(float(m), 2) if not pd.isna(m) else round(float(closes_tail[i]), 2) for i, m in enumerate(ma200_series.iloc[-tail_len:])]
+        last_trade_date = dates_tail[-1] if dates_tail else datetime.now().strftime("%Y-%m-%d")
 
         # Fetch option chain for options analysis (Covered Calls & Cash-Secured Puts)
         options_data = self.fetch_option_chain(ticker, current_price, vol_30d)
@@ -182,6 +182,7 @@ class MarketDataFetcher:
             "ticker": ticker,
             "current_price": round(current_price, 2),
             "change_pct": round(change_pct, 2),
+            "last_trade_date": last_trade_date,
             "ma50": round(ma50, 2),
             "diff_ma50_pct": round(diff_ma50_pct, 2),
             "ma200": round(ma200, 2),
