@@ -71,4 +71,34 @@ def test_end_to_end_html():
     for key in macro_keys:
         assert key in output_html
 
+    # Verify DESIGN.md compliance
+    # 1. Typography
+    assert "DM Sans" in output_html
+    assert "Instrument Serif" in output_html
+    assert "IBM Plex Mono" in output_html
+    assert "tabular-nums" in output_html
+
+    # 2. Three-Icon Theme Selector
+    assert 'id="theme-btn-light"' in output_html
+    assert 'id="theme-btn-dark"' in output_html
+    assert 'id="theme-btn-system"' in output_html
+    assert 'data-theme-mode="light"' in output_html
+    assert 'data-theme-mode="dark"' in output_html
+    assert 'data-theme-mode="system"' in output_html
+    assert "prefers-color-scheme: dark" in output_html
+
+    # 3. Light & Dark Mode Exact Hex Tokens
+    for token in ["#FAFAF9", "#FFFFFF", "#E7E5E4", "#1C1917", "#787774", "#0D0E11", "#16171D", "#292A30", "#ECE8E2", "#9A9895"]:
+        assert token in output_html
+
+    # 4. Semantic Data Visualization Palette
+    for color in ["#0D9488", "#D97706", "#4F46E5", "#059669", "#E11D48"]:
+        assert color in output_html
+
+    # 5. 3D, Network, Provenance & Incremental Updates
+    assert "Interactive Relationship Node Map" in output_html
+    assert "Structural Data Diagram" in output_html
+    assert "updateDashboardData" in output_html
+    assert "EMPIRICAL DATASET VERIFIED" in output_html
+
 
