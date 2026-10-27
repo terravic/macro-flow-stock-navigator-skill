@@ -13,6 +13,11 @@ def test_end_to_end_markdown():
     assert "Conservative (0.20Δ)" in output
     assert "Balanced (0.30Δ)" in output
     assert "Aggressive (0.40Δ)" in output
+    assert "Executive Finding" in output
+    assert "Core Health Pillars" in output
+    assert "Action Plan" in output
+    assert "Market Microstructure, Whale Order Flow & Practitioner Signals" in output
+    assert "Net Dealer Gamma (GEX)" in output
 
 def test_end_to_end_json():
     import json
@@ -22,6 +27,9 @@ def test_end_to_end_json():
     assert data_dict["ticker_info"]["ticker"] == "SOFI"
     assert "decision" in data_dict
     assert "macro_indicators" in data_dict
+    assert "unified_synthesis" in data_dict["decision"]
+    assert "traffic_light" in data_dict["decision"]["unified_synthesis"]
+    assert "short_float_pct" in data_dict["ticker_info"]
     
     # Options Playbook validation
     playbook = data_dict["options_playbook"]
@@ -42,6 +50,8 @@ def test_end_to_end_html():
     output_html = run_navigator(ticker="GOOG", lookback_days=60, output_format="html")
     assert "<!DOCTYPE html>" in output_html
     assert "Macro Flow Stock Navigator: GOOG" in output_html
+    assert "Executive Finding" in output_html
+    assert "Market Microstructure, Whale Gamma &amp; Practitioner Signals" in output_html
     assert "toggleTheme" in output_html
     assert "data-theme=" in output_html
     assert "priceChart" in output_html
@@ -57,7 +67,7 @@ def test_end_to_end_html():
     assert "setSimulatorStrategy" in output_html
     assert "loadIntoSimulator" in output_html
     
-    # Verify all 8 Macro Indicators have chart canvases in HTML
+    # Verify all 14 Multi-Dimensional Macro Indicators have chart canvases in HTML
     macro_keys = [
         "chart_RSP_SPY",
         "chart_GLD_SPX",
@@ -66,7 +76,13 @@ def test_end_to_end_html():
         "chart_SPX_GDP",
         "chart_SPHB_SPLV",
         "chart_XLY_XLP",
-        "chart_VIX_SPX"
+        "chart_VIX_SPX",
+        "chart_COPX_GLD",
+        "chart_HYG_LQD",
+        "chart_TIP_IEF",
+        "chart_VIX9D_VIX",
+        "chart_XBI_XLV",
+        "chart_PKG_SPY"
     ]
     for key in macro_keys:
         assert key in output_html

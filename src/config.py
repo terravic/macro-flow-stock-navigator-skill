@@ -20,6 +20,15 @@ INDICATOR_TICKERS = {
     "XLP": "XLP",     # Consumer Staples Select Sector SPDR Fund
     "VIX": "^VIX",    # CBOE Volatility Index
     "SPX": "^GSPC",   # S&P 500 Index
+    "COPX": "COPX",   # Global Copper Miners (Physical Industrial Pulse)
+    "HYG": "HYG",     # High Yield Corporate Bond ETF (Junk Credit Solvency)
+    "LQD": "LQD",     # Investment Grade Corporate Bond ETF (High Quality Credit)
+    "TIP": "TIP",     # Treasury Inflation Protected ETF (Real Borrowing Rates)
+    "IEF": "IEF",     # 7-10 Year Treasury Bond ETF (Nominal Benchmark)
+    "XBI": "XBI",     # SPDR S&P Biotech ETF (Clinical Human Health Innovation)
+    "XLV": "XLV",     # Health Care Select Sector SPDR (Defensive Mature Pharma)
+    "PKG": "PKG",     # Packaging Corp of America (Real-World Box Shipping)
+    "VIX9D": "^VIX9D",# CBOE 9-Day Volatility Index (Ultra-Short Shock Term Structure)
 }
 
 # ---------------------------------------------------------
@@ -46,6 +55,12 @@ STOCK_ARCHETYPES = {
             "XLY_XLP": 1.0,     # Favorable on consumer/cyclical strength
             "VIX_SPX": -1.5,    # Sensitive to volatility spikes
             "SPX_GDP": -0.5,    # Moderate valuation sensitivity
+            "COPX_GLD": 1.0,    # Physical expansion confirmation
+            "HYG_LQD": 1.5,     # Corporate credit liquidity
+            "TIP_IEF": -1.5,    # Sensitive to rising real rates/discount factor
+            "VIX9D_VIX": -1.5,  # Dragged down by acute volatility curve inversion
+            "XBI_XLV": 1.0,     # Tech/innovation venture risk appetite
+            "PKG_SPY": 0.5,     # General physical commerce pulse
         }
     },
     "HIGH_BETA_GROWTH": {
@@ -62,6 +77,12 @@ STOCK_ARCHETYPES = {
             "XLY_XLP": 1.5,     # Thrives in cyclical economic optimism
             "VIX_SPX": -2.5,    # Heavily crushed by rising VIX & panic
             "SPX_GDP": -1.0,    # Sensitive to broader equity multiple contraction
+            "COPX_GLD": 1.5,    # Bullish on industrial risk expansion
+            "HYG_LQD": 2.5,     # Essential: High yield credit spreads must stay tight
+            "TIP_IEF": -2.5,    # Severely crushed by higher real discount rates
+            "VIX9D_VIX": -2.5,  # High vulnerability to sudden panic inversions
+            "XBI_XLV": 2.0,     # Strong correlation with biotech speculative venture appetite
+            "PKG_SPY": 1.0,     # Economic velocity confirmation
         }
     },
     "CYCLICAL_INDUSTRIAL": {
@@ -78,6 +99,12 @@ STOCK_ARCHETYPES = {
             "NDX_SPX": -0.5,    # Capital rotation away from tech often helps cyclicals
             "VIX_SPX": -1.5,    # Volatility drag
             "SPX_GDP": -0.5,    # Valuation drag
+            "COPX_GLD": 2.5,    # Core driver: Dr. Copper leads industrial capex
+            "HYG_LQD": 1.5,     # Corporate credit access for heavy equipment/capex
+            "TIP_IEF": -0.5,    # Moderate real rate sensitivity
+            "VIX9D_VIX": -1.5,  # Short-term market disruption drag
+            "XBI_XLV": 0.0,     # Independent of clinical health
+            "PKG_SPY": 2.5,     # Crucial physical shipping/box volume confirmation
         }
     },
     "DEFENSIVE_VALUE": {
@@ -94,6 +121,12 @@ STOCK_ARCHETYPES = {
             "IWM_SPY": -1.0,    # Small cap lag usually coincides with defensive flight
             "VIX_SPX": 1.0,     # Relatively insulated from VIX spikes
             "SPX_GDP": -0.5,    # Valuation consideration
+            "COPX_GLD": -1.0,   # Relative outperformance when industrial growth wanes
+            "HYG_LQD": -1.0,    # Flight to quality favors defensives
+            "TIP_IEF": 1.0,     # Capital preservation holds steady
+            "VIX9D_VIX": 0.5,   # Relatively insulated from short-term volatility shocks
+            "XBI_XLV": -1.5,    # Favors mature cash-flow pharma (XLV) over risky biotech
+            "PKG_SPY": -0.5,    # Stable consumer staples remain resilient
         }
     },
     "FINANCIAL_BANKING": {
@@ -110,6 +143,12 @@ STOCK_ARCHETYPES = {
             "NDX_SPX": 0.0,     # Tech neutral
             "VIX_SPX": -1.5,    # Volatility drag
             "SPX_GDP": -0.5,    # Valuation
+            "COPX_GLD": 1.5,    # Economic activity & loan growth
+            "HYG_LQD": 2.0,     # Crucial: Tight credit spreads signal healthy loan book
+            "TIP_IEF": 1.0,     # Positive on healthy real yields/margins
+            "VIX9D_VIX": -1.5,  # Short-term market shock drag
+            "XBI_XLV": 0.5,     # Venture IPO underwriting pulse
+            "PKG_SPY": 1.0,     # Commercial commerce volume
         }
     }
 }

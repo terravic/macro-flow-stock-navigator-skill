@@ -50,6 +50,15 @@ class AlignmentDecisionEngine:
             hostile_forces=hostile_forces
         )
 
+        # 5. Build Unified View & Executive Finding
+        unified_synthesis = cls._build_unified_synthesis(
+            ticker_info=ticker_info,
+            indicators=indicators,
+            alignment_score=alignment_score,
+            macro_regime=macro_regime,
+            options_playbook=options_playbook
+        )
+
         return {
             "ticker": ticker_info["ticker"],
             "archetype_key": archetype_key,
@@ -62,7 +71,8 @@ class AlignmentDecisionEngine:
             "conviction": conviction,
             "favorable_forces": favorable_forces,
             "hostile_forces": hostile_forces,
-            "options_playbook": options_playbook
+            "options_playbook": options_playbook,
+            "unified_synthesis": unified_synthesis
         }
 
     @classmethod
@@ -596,3 +606,207 @@ class AlignmentDecisionEngine:
             color_badge = "Neutral"
 
         return f"[{filled}{empty}] {score:+.1f}/100 ({color_badge})"
+
+    @classmethod
+    def _build_unified_synthesis(
+        cls,
+        ticker_info: Dict[str, Any],
+        indicators: Dict[str, Dict[str, Any]],
+        alignment_score: float,
+        macro_regime: Dict[str, str],
+        options_playbook: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Creates a unified executive synthesis of stock movement:
+        - Traffic Light Status (GREEN, YELLOW, RED)
+        - 1-Sentence Headline Verdict
+        - 4 Core Health Pillars (Real Economy, Credit Health, Market Sentiment, Institutional Floor)
+        - Quantitative Action Plan (Directive, cash income, return rate, buffer)
+        """
+        ticker = ticker_info.get("ticker", "STOCK")
+        price = ticker_info.get("current_price", 100.0)
+        options_data = ticker_info.get("options_data", {})
+        csp_matrix = options_playbook.get("cash_secured_put_matrix", {})
+        cc_matrix = options_playbook.get("covered_call_matrix", {})
+
+        # 1. Composite Unified Health Score (-100 to +100)
+        tech_score = 0.0
+        if ticker_info.get("diff_ma50_pct", 0.0) > 0:
+            tech_score += 10.0
+        else:
+            tech_score -= 10.0
+        if ticker_info.get("diff_ma200_pct", 0.0) > 0:
+            tech_score += 10.0
+        else:
+            tech_score -= 10.0
+
+        gex_regime = options_data.get("gamma_regime", "")
+        if "POSITIVE GAMMA" in gex_regime:
+            gamma_score = 15.0
+        elif "NEGATIVE GAMMA" in gex_regime:
+            gamma_score = -15.0
+        else:
+            gamma_score = 0.0
+
+        composite_score = float(np.clip(alignment_score * 0.60 + tech_score + gamma_score, -100.0, 100.0))
+
+        # 2. Traffic Light Status & Headline Verdict
+        if composite_score >= 18.0:
+            traffic_light = "GREEN LIGHT"
+            traffic_color = "#059669"  # Emerald
+            verdict_headline = f"Market conditions are solidly in {ticker}'s favor with healthy business fundamentals and strong institutional price support."
+            direction_title = "Favorable Uptrend / Safe Accumulation"
+        elif composite_score <= -18.0:
+            traffic_light = "RED LIGHT"
+            traffic_color = "#E11D48"  # Rose
+            verdict_headline = f"Warning lights are flashing across borrowing and macro markets; protect capital and avoid chasing {ticker}."
+            direction_title = "Defensive / Downside Risk Caution"
+        else:
+            traffic_light = "YELLOW LIGHT"
+            traffic_color = "#D97706"  # Amber
+            verdict_headline = f"{ticker} is moving sideways in a neutral channel with balanced push-and-pull between buyers and sellers."
+            direction_title = "Neutral / Sideways Range-Bound"
+
+        # 3. Four Health Pillars
+        # Pillar 1: Real Economy (Physical Goods & Shipping)
+        copx_gld = indicators.get("COPX_GLD", {}).get("trend_signal", "Neutral")
+        pkg_spy = indicators.get("PKG_SPY", {}).get("trend_signal", "Neutral")
+        xly_xlp = indicators.get("XLY_XLP", {}).get("trend_signal", "Neutral")
+
+        real_eco_bull = sum(1 for s in [copx_gld, pkg_spy, xly_xlp] if "Rising" in s)
+        if real_eco_bull >= 2:
+            p1_status = "Healthy & Expanding"
+            p1_text = "Physical goods, factories, and shipping freight demand expanding."
+        elif real_eco_bull == 0:
+            p1_status = "Slowing Down"
+            p1_text = "Physical demand and shipping freight volumes cooling down."
+        else:
+            p1_status = "Steady / Stable"
+            p1_text = "Everyday physical goods and freight shipping demand holding steady."
+
+        # Pillar 2: Borrowing Health (Corporate Debts & Solvency)
+        hyg_lqd = indicators.get("HYG_LQD", {}).get("trend_signal", "Neutral")
+        if "Rising" in hyg_lqd:
+            p2_status = "Solid / Easy Borrowing"
+            p2_text = "Credit spreads narrow; corporate borrowing and liquidity healthy."
+        elif "Falling" in hyg_lqd:
+            p2_status = "Tightening Stress"
+            p2_text = "Widening credit spreads; corporate borrowing and debt costs increasing."
+        else:
+            p2_status = "Normal / Balanced"
+            p2_text = "Credit markets balanced with stable corporate debt financing."
+
+        # Pillar 3: Market Sentiment (Fear vs Greed)
+        vix9d_vix = indicators.get("VIX9D_VIX", {}).get("trend_signal", "Neutral")
+        vix_spx = indicators.get("VIX_SPX", {}).get("trend_signal", "Neutral")
+        lottery_ratio = options_data.get("lottery_call_ratio", 10.0)
+
+        if "Rising" in vix9d_vix or "Rising" in vix_spx:
+            p3_status = "Anxious / Guarded"
+            p3_text = "Elevated put hedging; short-term downside anxiety elevated."
+        elif lottery_ratio > 25.0:
+            p3_status = "Over-Excited (FOMO)"
+            p3_text = "High retail lottery call speculation; pullback risk elevated."
+        else:
+            p3_status = "Calm & Orderly"
+            p3_text = "Market sentiment calm; volatility orderly without panic spikes."
+
+        # Pillar 4: Institutional Setup (Dealer Gamma Cushion & Safety Floor)
+        flip_strike = options_data.get("gamma_flip_strike", price * 0.95)
+
+        if price >= flip_strike:
+            p4_status = "Supportive Floor"
+            p4_text = f"Positive dealer gamma cushion above ${flip_strike:.2f} floor."
+        else:
+            p4_status = "Below Safety Floor"
+            p4_text = f"Below ${flip_strike:.2f} safety floor; accelerating negative gamma zone."
+
+        # 4. Action Plan
+        best_csp = csp_matrix.get("balanced", {})
+        best_cc = cc_matrix.get("balanced", {})
+        selected_dte = options_data.get("selected_dte", 30)
+
+        if composite_score >= 0:
+            strike = best_csp.get("strike", round(price * 0.92, 2))
+            premium = best_csp.get("premium", round(price * 0.02, 2))
+            buffer_pct = best_csp.get("otm_pct", 8.0)
+            net_cost = best_csp.get("net_cost_basis", round(strike - premium, 2))
+            cash_upfront = int(premium * 100)
+            ann_roc = best_csp.get("annualized_roc", 18.0)
+            directive = f"Sell ${strike:.2f} Put ({selected_dte} DTE)"
+            rate_val = ann_roc
+            rate_label = "Annualized ROC"
+            buffer_val = buffer_pct
+            buffer_label = "Downside Buffer"
+            
+            action_headline = f"Get Paid ${cash_upfront} Today to Buy {ticker} at an {buffer_pct:.1f}% Discount"
+            action_steps = [
+                f"1. Sell one ${strike:.2f} Put contract (expiring in {selected_dte} days).",
+                f"2. Collect ${cash_upfront} upfront cash deposited immediately into your account.",
+                f"3. Unassigned Outcome: If {ticker} stays above ${strike:.2f}, pocket the entire ${cash_upfront} ({ann_roc:.1f}% annualized return).",
+                f"4. Assigned Outcome: If {ticker} drops below ${strike:.2f}, acquire shares at net basis of ${net_cost:.2f} ({buffer_pct:.1f}% discount)."
+            ]
+            action_summary = f"Collect ${cash_upfront} upfront cash per contract with downside protection to ${net_cost:.2f}."
+        else:
+            strike = best_cc.get("strike", round(price * 1.05, 2))
+            premium = best_cc.get("premium", round(price * 0.02, 2))
+            upside_pct = best_cc.get("otm_pct", 5.0)
+            cash_upfront = int(premium * 100)
+            ann_yield = best_cc.get("yield_unassigned", 18.0)
+            max_profit = int((strike - price + premium) * 100)
+            directive = f"Sell ${strike:.2f} Call ({selected_dte} DTE)"
+            rate_val = ann_yield
+            rate_label = "Annualized Yield"
+            buffer_val = upside_pct
+            buffer_label = "Price Upside Cap"
+
+            action_headline = f"Collect ${cash_upfront} Defense Cash on Your {ticker} Shares"
+            action_steps = [
+                f"1. If holding 100 shares of {ticker}, sell one ${strike:.2f} Call contract ({selected_dte} DTE).",
+                f"2. Collect ${cash_upfront} upfront cash credit as immediate downside defense.",
+                f"3. Unassigned Outcome: If {ticker} stays below ${strike:.2f}, retain shares and keep ${cash_upfront} ({ann_yield:.1f}% annualized yield).",
+                f"4. Called Away Outcome: If {ticker} rallies past ${strike:.2f}, deliver shares at ${strike:.2f} for total profit of ${max_profit}."
+            ]
+            action_summary = f"Collect ${cash_upfront} upfront cash per 100 shares for downside defense while allowing {upside_pct:.1f}% upside."
+
+        return {
+            "traffic_light": traffic_light,
+            "traffic_color": traffic_color,
+            "composite_score": round(composite_score, 1),
+            "direction_title": direction_title,
+            "verdict_headline": verdict_headline,
+            "pillars": {
+                "real_economy": {
+                    "title": "Real Economy (Goods & Shipping)",
+                    "status": p1_status,
+                    "explanation": p1_text
+                },
+                "borrowing_health": {
+                    "title": "Borrowing Health (Corporate Debts)",
+                    "status": p2_status,
+                    "explanation": p2_text
+                },
+                "crowd_mood": {
+                    "title": "Crowd Mood (Fear vs Greed)",
+                    "status": p3_status,
+                    "explanation": p3_text
+                },
+                "smart_money": {
+                    "title": "Smart Money (Institutional Safety Floor)",
+                    "status": p4_status,
+                    "safety_floor": f"${flip_strike:.2f}",
+                    "explanation": p4_text
+                }
+            },
+            "plain_dollar_action": {
+                "headline": action_headline,
+                "directive": directive,
+                "cash_collected_dollars": cash_upfront,
+                "rate_val": round(rate_val, 1),
+                "rate_label": rate_label,
+                "buffer_val": round(buffer_val, 1),
+                "buffer_label": buffer_label,
+                "summary": action_summary,
+                "steps": action_steps
+            }
+        }

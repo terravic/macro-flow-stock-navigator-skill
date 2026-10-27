@@ -1,6 +1,6 @@
 """
 Macro Indicators Engine.
-Calculates 8 key macro ratio indicators, moving averages, trend slopes,
+Calculates 14 multi-dimensional macro ratio indicators, moving averages, trend slopes,
 and percentile distributions from market data.
 """
 
@@ -185,7 +185,7 @@ class MacroIndicatorCalculator:
         nominal_gdp: float = DEFAULT_NOMINAL_GDP_TRILLIONS
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Computes all 8 core macro indicators.
+        Computes all 14 multi-dimensional macro indicators.
         """
         indicators = {}
 
@@ -288,6 +288,79 @@ class MacroIndicatorCalculator:
                 denom_series=spx_series / 100.0,
                 meaning_rising="Elevated volatility and fear premium escalating",
                 meaning_falling="Volatility compressing; steady market trend and low hedging demand"
+            )
+
+        # 9. COPX / GLD (Dr. Copper vs Gold: Global Physical Growth vs Fear)
+        if "COPX" in price_data and "GLD" in price_data:
+            indicators["COPX_GLD"] = cls.compute_indicator_profile(
+                name="COPX_GLD",
+                display_name="Global Industrial Pulse vs Monetary Fear",
+                ratio_tickers="COPX / GLD",
+                num_series=price_data["COPX"],
+                denom_series=price_data["GLD"],
+                meaning_rising="Physical infrastructure and industrial demand expanding faster than fear",
+                meaning_falling="Industrial manufacturing slowdown; flight to monetary safety and gold"
+            )
+
+        # 10. HYG / LQD (High Yield vs Investment Grade Credit Spread)
+        if "HYG" in price_data and "LQD" in price_data:
+            indicators["HYG_LQD"] = cls.compute_indicator_profile(
+                name="HYG_LQD",
+                display_name="Corporate Credit Solvency & Risk Spread",
+                ratio_tickers="HYG / LQD",
+                num_series=price_data["HYG"],
+                denom_series=price_data["LQD"],
+                meaning_rising="Corporate credit spreads tightening; borrowing health and liquidity strong",
+                meaning_falling="Credit default spreads widening; corporate debt distress and tightening"
+            )
+
+        # 11. TIP / IEF (Real Interest Rates & Cost of Capital)
+        if "TIP" in price_data and "IEF" in price_data:
+            indicators["TIP_IEF"] = cls.compute_indicator_profile(
+                name="TIP_IEF",
+                display_name="Real Interest Rates & Cost of Capital",
+                ratio_tickers="TIP / IEF",
+                num_series=price_data["TIP"],
+                denom_series=price_data["IEF"],
+                meaning_rising="Inflation compensation climbing; capital cost pressure",
+                meaning_falling="Real rates easing / multiple expansion tailwind for growth"
+            )
+
+        # 12. VIX9D / VIX (Volatility Term Structure Panic Inversion)
+        vix9d_series = price_data.get("VIX9D", pd.Series())
+        if len(vix9d_series) > 0 and len(vix_series) > 0:
+            indicators["VIX9D_VIX"] = cls.compute_indicator_profile(
+                name="VIX9D_VIX",
+                display_name="Volatility Term Structure Shock Inversion",
+                ratio_tickers="VIX9D / VIX",
+                num_series=vix9d_series,
+                denom_series=vix_series,
+                meaning_rising="Acute short-term panic shock; term structure inverting into backwardation",
+                meaning_falling="Healthy volatility contango; market pricing calm and low crash anxiety"
+            )
+
+        # 13. XBI / XLV (Biotech Clinical Innovation vs Mature Pharma)
+        if "XBI" in price_data and "XLV" in price_data:
+            indicators["XBI_XLV"] = cls.compute_indicator_profile(
+                name="XBI_XLV",
+                display_name="Human Health Innovation vs Defensive Pharma",
+                ratio_tickers="XBI / XLV",
+                num_series=price_data["XBI"],
+                denom_series=price_data["XLV"],
+                meaning_rising="Speculative venture appetite expanding in human health breakthroughs",
+                meaning_falling="Capital retreating into mature defensive dividend pharma"
+            )
+
+        # 14. PKG / SPY (Physical Cardboard Box Shipping Velocity)
+        if "PKG" in price_data and "SPY" in price_data:
+            indicators["PKG_SPY"] = cls.compute_indicator_profile(
+                name="PKG_SPY",
+                display_name="Physical Goods Shipping & Packaging Velocity",
+                ratio_tickers="PKG / SPY",
+                num_series=price_data["PKG"],
+                denom_series=price_data["SPY"],
+                meaning_rising="Real-world goods packaging and shipment volumes expanding",
+                meaning_falling="Physical product delivery slowdown; digital-only divergence"
             )
 
         return indicators

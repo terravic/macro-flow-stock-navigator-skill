@@ -57,3 +57,40 @@ def test_compute_all_indicators():
         assert "ma50" in ind
         assert "trend_signal" in ind
         assert "market_meaning" in ind
+
+def test_compute_all_14_indicators():
+    dates = pd.date_range("2026-01-01", periods=60, freq="B")
+    mock_data_14 = {
+        "SPY": pd.Series(500.0 + np.linspace(0, 10, 60), index=dates),
+        "SPX": pd.Series(5000.0 + np.linspace(0, 100, 60), index=dates),
+        "RSP": pd.Series(160.0 + np.linspace(0, 2, 60), index=dates),
+        "GLD": pd.Series(210.0 + np.linspace(0, -3, 60), index=dates),
+        "QQQ": pd.Series(440.0 + np.linspace(0, 15, 60), index=dates),
+        "IWM": pd.Series(200.0 + np.linspace(0, 4, 60), index=dates),
+        "SPHB": pd.Series(85.0 + np.linspace(0, 5, 60), index=dates),
+        "SPLV": pd.Series(68.0 + np.linspace(0, 1, 60), index=dates),
+        "XLY": pd.Series(180.0 + np.linspace(0, 8, 60), index=dates),
+        "XLP": pd.Series(78.0 + np.linspace(0, 1, 60), index=dates),
+        "VIX": pd.Series(15.0 + np.linspace(0, -2, 60), index=dates),
+        "COPX": pd.Series(74.0 + np.linspace(0, 4, 60), index=dates),
+        "HYG": pd.Series(77.0 + np.linspace(0, 1, 60), index=dates),
+        "LQD": pd.Series(104.0 + np.linspace(0, -1, 60), index=dates),
+        "TIP": pd.Series(106.0 + np.linspace(0, 0.5, 60), index=dates),
+        "IEF": pd.Series(91.0 + np.linspace(0, -0.5, 60), index=dates),
+        "XBI": pd.Series(150.0 + np.linspace(0, 6, 60), index=dates),
+        "XLV": pd.Series(179.0 + np.linspace(0, 2, 60), index=dates),
+        "PKG": pd.Series(253.0 + np.linspace(0, 8, 60), index=dates),
+        "VIX9D": pd.Series(17.5 + np.linspace(0, -1, 60), index=dates),
+    }
+
+    indicators = MacroIndicatorCalculator.compute_all_indicators(mock_data_14)
+    assert len(indicators) == 14
+    for key in [
+        "RSP_SPY", "GLD_SPX", "NDX_SPX", "IWM_SPY", "SPX_GDP",
+        "SPHB_SPLV", "XLY_XLP", "VIX_SPX", "COPX_GLD", "HYG_LQD",
+        "TIP_IEF", "VIX9D_VIX", "XBI_XLV", "PKG_SPY"
+    ]:
+        assert key in indicators
+        assert "current_value" in indicators[key]
+        assert "trend_signal" in indicators[key]
+        assert "market_meaning" in indicators[key]

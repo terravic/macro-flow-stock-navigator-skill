@@ -31,11 +31,11 @@ def test_evaluate_decision_engine():
     }
 
     mock_indicators = {
-        "NDX_SPX": {"display_name": "Tech Momentum", "ratio_tickers": "NDX/SPX", "raw_sentiment_score": 1.5, "trend_signal": "STRONG RISING ↗️", "market_meaning": "Tech leading"},
-        "RSP_SPY": {"display_name": "Breadth", "ratio_tickers": "RSP/SPY", "raw_sentiment_score": -1.0, "trend_signal": "FALLING ↘️", "market_meaning": "Concentration"},
-        "GLD_SPX": {"display_name": "Gold/SPX", "ratio_tickers": "GLD/SPX", "raw_sentiment_score": -1.0, "trend_signal": "FALLING ↘️", "market_meaning": "Risk on"},
-        "SPHB_SPLV": {"display_name": "High Beta", "ratio_tickers": "SPHB/SPLV", "raw_sentiment_score": 1.0, "trend_signal": "RISING ↗️", "market_meaning": "Risk appetite"},
-        "VIX_SPX": {"display_name": "VIX/SPX", "ratio_tickers": "VIX/SPX", "raw_sentiment_score": -1.5, "trend_signal": "FALLING ↘️", "market_meaning": "Low fear"},
+        "NDX_SPX": {"display_name": "Tech Momentum", "ratio_tickers": "NDX/SPX", "raw_sentiment_score": 1.5, "trend_signal": "STRONG RISING", "market_meaning": "Tech leading"},
+        "RSP_SPY": {"display_name": "Breadth", "ratio_tickers": "RSP/SPY", "raw_sentiment_score": -1.0, "trend_signal": "FALLING", "market_meaning": "Concentration"},
+        "GLD_SPX": {"display_name": "Gold/SPX", "ratio_tickers": "GLD/SPX", "raw_sentiment_score": -1.0, "trend_signal": "FALLING", "market_meaning": "Risk on"},
+        "SPHB_SPLV": {"display_name": "High Beta", "ratio_tickers": "SPHB/SPLV", "raw_sentiment_score": 1.0, "trend_signal": "RISING", "market_meaning": "Risk appetite"},
+        "VIX_SPX": {"display_name": "VIX/SPX", "ratio_tickers": "VIX/SPX", "raw_sentiment_score": -1.5, "trend_signal": "FALLING", "market_meaning": "Low fear"},
     }
 
     decision = AlignmentDecisionEngine.evaluate(ticker_info, mock_indicators)
@@ -48,3 +48,19 @@ def test_evaluate_decision_engine():
     assert "tactical_execution" in decision["options_playbook"]
     assert "recommended_delta" in decision["options_playbook"]["tactical_execution"]
     assert "optimal_strike" in decision["options_playbook"]["tactical_execution"]
+
+    # Unified synthesis validation
+    assert "unified_synthesis" in decision
+    synth = decision["unified_synthesis"]
+    assert "traffic_light" in synth
+    assert synth["traffic_light"] in ["GREEN LIGHT", "YELLOW LIGHT", "RED LIGHT"]
+    assert "verdict_headline" in synth
+    assert "pillars" in synth
+    assert "real_economy" in synth["pillars"]
+    assert "borrowing_health" in synth["pillars"]
+    assert "crowd_mood" in synth["pillars"]
+    assert "smart_money" in synth["pillars"]
+    assert "plain_dollar_action" in synth
+    assert "headline" in synth["plain_dollar_action"]
+    assert "steps" in synth["plain_dollar_action"]
+    assert len(synth["plain_dollar_action"]["steps"]) >= 2

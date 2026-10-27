@@ -24,7 +24,7 @@ Activate this skill when the user:
 - Asks for **personalized Covered Call recommendations** given a number of shares held (e.g., "I own 300 shares of GOOG, what covered call should I sell?").
 - Asks for **personalized Cash-Secured Put recommendations** given a cash dollar amount (e.g., "I have $25,000 cash, what cash-secured puts should I sell on SOFI?").
 - Requests an **options selling playbook** evaluating implied volatility rank, IV vs. RV spread, Put/Call volume & open interest ratio, Max Pain strike, and institutional Unusual Option Activity (UOA).
-- Inquires about the **8 cross-asset macro indicators** (RSP/SPY, GLD/SPX, NDX/SPX, IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX).
+- Inquires about the **14 cross-asset macro indicators** across real economy, credit solvency, volatility structure, and market breadth.
 
 ---
 
@@ -66,7 +66,7 @@ python3 scripts/run_analysis.py --ticker <TICKER> --format json
 ```
 
 ### Step 2: Extract & Verify Output
-1. The script automatically fetches real-time historical time series for the 8 macro ratio pairs and the target equity's live option chain.
+1. The script automatically fetches real-time historical time series for the 14 macro ratio pairs and the target equity's live option chain.
 2. It computes the 50-day moving average, trend slope, and 90-day percentile rank for each macro indicator.
 3. It screens three distinct risk tiers (Conservative 0.20Δ, Balanced 0.30Δ, Aggressive 0.40Δ) for both **Covered Calls** and **Cash-Secured Puts**.
 4. If `--shares` or `--cash` is supplied, it generates an immediate **Portfolio Positioning & Tailored Options Recommendation** section detailing exact contract capacity, upfront premium income, annualized yield/ROC, break-even cost basis, and assigned return.
@@ -75,7 +75,7 @@ python3 scripts/run_analysis.py --ticker <TICKER> --format json
 ### Step 3: Present the Executive Dashboard & Answer Follow-Up Questions
 Deliver the formatted Markdown or interactive Web UI dashboard directly to the user:
 1. **Executive Summary & Tailored Portfolio Section:** Displays exact shares held / cash deployed, contract capacity, and projected income.
-2. **8 Macro Cross-Asset Indicators Table:** RSP/SPY, GLD/SPX, NDX/SPX, IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX with moving average trends.
+2. **14 Macro Cross-Asset Indicators Table:** RSP/SPY, GLD/SPX, NDX/SPX, IWM/SPY, SPX/GDP, SPHB/SPLV, XLY/XLP, VIX/SPX, COPX/GLD, HYG/LQD, TIP/IEF, VIX9D/VIX, XBI/XLV, PKG/SPY with moving average trends.
 3. **Covered Call & Cash-Secured Put Screener Matrices:** Conservative, Balanced, and Aggressive tiers with strike, premium mid, delta, theta, OTM %, yield, cushion, and net basis.
 4. **Institutional Option Flow & Max Pain:** Key market sentiment indicators, IV rank, Put/Call ratios, and anomalous sweeps.
 5. **Answering Subsequent Options Questions:**
@@ -83,7 +83,7 @@ Deliver the formatted Markdown or interactive Web UI dashboard directly to the u
 
 ---
 
-## The 8 Core Macro Ratio Indicators
+## The 14 Multi-Dimensional Macro Indicators
 
 | Indicator | Ratio Tickers | What It Measures | Favorable Condition |
 | :--- | :--- | :--- | :--- |
@@ -95,6 +95,12 @@ Deliver the formatted Markdown or interactive Web UI dashboard directly to the u
 | **Speculative Appetite** | `SPHB / SPLV` | High Beta vs. Low Volatility S&P | Rising = Speculative risk-seeking; Falling = Capital preservation |
 | **Cyclical Growth** | `XLY / XLP` | Consumer Discretionary vs. Staples | Rising = Strong consumer spending confidence; Falling = Defensive belt-tightening |
 | **Fear Normalization** | `VIX / SPX` | Normalized CBOE Volatility Index | Falling = Volatility compression; Spiking = Capitulation or stress |
+| **Industrial Pulse** | `COPX / GLD` | Copper Miners vs Gold | Rising = Real-world physical manufacturing expansion; Falling = Monetary safe haven flight |
+| **Credit Solvency** | `HYG / LQD` | High Yield vs Investment Grade Bonds | Rising = Tight credit spreads & corporate solvency; Falling = Default anxiety |
+| **Real Cost of Capital** | `TIP / IEF` | TIPS vs Nominal Treasuries | Rising = Real yields supportive of pricing power; Falling = Capital tightening |
+| **Volatility Term Inversion** | `VIX9D / VIX` | 9-Day vs 30-Day Volatility | Ratio < 1.0 = Normal calm; Ratio > 1.0 = Acute short-term shock backwardation |
+| **Clinical Innovation** | `XBI / XLV` | Biotech Innovation vs Defensive Pharma | Rising = High appetite for disruptive health R&D; Falling = Defensive positioning |
+| **Shipping Velocity** | `PKG / SPY` | Packaging Corp vs S&P 500 | Rising = Accelerating cardboard box and freight shipment demand |
 
 *For detailed explanations, refer to [`references/macro_indicators_guide.md`](references/macro_indicators_guide.md).*
 

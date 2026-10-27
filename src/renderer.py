@@ -135,6 +135,49 @@ class DashboardRenderer:
         )
         lines.append("")
 
+        # ---------------------------------------------------------
+        # EXECUTIVE FINDING
+        # ---------------------------------------------------------
+        synthesis = decision.get("unified_synthesis", {})
+        if synthesis:
+            t_light = synthesis.get("traffic_light", "YELLOW LIGHT")
+            verdict = synthesis.get("verdict_headline", "")
+            comp_score = synthesis.get("composite_score", 0.0)
+            dir_title = synthesis.get("direction_title", "")
+            pillars = synthesis.get("pillars", {})
+            action = synthesis.get("plain_dollar_action", {})
+
+            lines.append("## Executive Finding")
+            lines.append("")
+            lines.append(f"### Status: **{t_light}** — {dir_title} ({comp_score:+.1f}/100)")
+            lines.append(f"> **Verdict:** {verdict}")
+            lines.append("")
+            lines.append("#### Core Health Pillars:")
+            lines.append("")
+            lines.append("| Pillar | Status | Finding |")
+            lines.append("| :--- | :--- | :--- |")
+            for p_key, p_val in pillars.items():
+                title = p_val.get("title", p_key)
+                status = p_val.get("status", "N/A")
+                expl = p_val.get("explanation", "")
+                floor = f" (Floor: {p_val['safety_floor']})" if "safety_floor" in p_val else ""
+                lines.append(f"| **{title}** | `{status}`{floor} | {expl} |")
+            lines.append("")
+
+            if action:
+                lines.append("#### Action Plan:")
+                lines.append(f"**{action.get('headline', '')}**")
+                lines.append("")
+                if "directive" in action:
+                    lines.append(f"- **Directive:** `{action['directive']}`")
+                    lines.append(f"- **Upfront Cash Income:** `+${action.get('cash_collected_dollars', 0):,}`")
+                    lines.append(f"- **{action.get('rate_label', 'Return Rate')}:** `+{action.get('rate_val', 0.0):.1f}%`")
+                    lines.append(f"- **{action.get('buffer_label', 'Buffer')}:** `{action.get('buffer_val', 0.0):.1f}%`")
+                for step in action.get("steps", []):
+                    lines.append(f"- {step}")
+                lines.append(f"- *Summary:* {action.get('summary', '')}")
+                lines.append("")
+
         # Optional Portfolio Overlay (Shares Held or Cash Collateral)
         if shares_held > 0 or cash_available > 0:
             lines.append("## Portfolio Positioning & Tailored Options Recommendations")
@@ -213,7 +256,7 @@ class DashboardRenderer:
         # ---------------------------------------------------------
         # 2. MACRO INDICATORS TABLE
         # ---------------------------------------------------------
-        lines.append("## 1. Macro Cross-Asset Indicators (8 Ratios)")
+        lines.append(f"## 1. Macro Cross-Asset Indicators ({len(indicators)} Ratios)")
         lines.append("")
         lines.append(
             "| Indicator | Ratio Tickers | Current Value | 50-MA Status | Trend | Interpretation |"
@@ -266,6 +309,37 @@ class DashboardRenderer:
         else:
             lines.append("- *No major macro headwinds detected.*")
 
+        lines.append("")
+
+        # ---------------------------------------------------------
+        # MARKET MICROSTRUCTURE & PRACTITIONER SIGNALS
+        # ---------------------------------------------------------
+        opt_data = ticker_info.get("options_data", {})
+        lines.append("## 2b. Market Microstructure, Whale Order Flow & Practitioner Signals")
+        lines.append("")
+        lines.append("| Microstructure Metric | Observed Value | Strategic Interpretation |")
+        lines.append("| :--- | :--- | :--- |")
+        lines.append(
+            f"| **Net Dealer Gamma (GEX)** | `{opt_data.get('net_gex_formatted', '$0M')}` | {opt_data.get('gamma_regime', 'Neutral')} |"
+        )
+        lines.append(
+            f"| **Gamma Flip Safety Floor** | `${opt_data.get('gamma_flip_strike', price):.2f}` | Key institutional threshold: Above = shock absorber, Below = volatility cascade |"
+        )
+        lines.append(
+            f"| **25-Delta Put/Call Skew** | `{opt_data.get('skew_25d', 2.0):+.1f}%` | {opt_data.get('skew_signal', 'Balanced')} |"
+        )
+        lines.append(
+            f"| **Retail 5Δ Call Surge** | `{opt_data.get('lottery_call_ratio', 10.0):.1f}%` | {opt_data.get('lottery_call_signal', 'Normal')} |"
+        )
+        lines.append(
+            f"| **Short Interest (% Float)** | `{ticker_info.get('short_float_pct', 2.0):.2f}%` | Days to Cover: `{ticker_info.get('days_to_cover', 2.5)}d` |"
+        )
+        lines.append(
+            f"| **Dark Pool Volume Share** | `{ticker_info.get('dark_pool_ratio_pct', 43.0):.1f}%` | Real-world off-exchange institutional block execution |"
+        )
+        lines.append(
+            f"| **Closing MOC Imbalance** | `{ticker_info.get('moc_imbalance', 'Balanced')}` | End-of-day institutional closing auction direction |"
+        )
         lines.append("")
 
         # ---------------------------------------------------------
@@ -418,6 +492,7 @@ class DashboardRenderer:
                 "macro_regime": decision.get("macro_regime"),
                 "favorable_forces": decision.get("favorable_forces"),
                 "hostile_forces": decision.get("hostile_forces"),
+                "unified_synthesis": decision.get("unified_synthesis"),
             },
             "macro_indicators": indicators,
             "options_playbook": decision.get("options_playbook"),
@@ -493,6 +568,7 @@ class DashboardRenderer:
             if len(ind.get("history", [])) >= 5
             and ind.get("trend_signal") != "Insufficient Data"
         )
+        num_indicators = len(indicators)
 
         checksum_payload = f"{ticker}:{price}:{last_trade_date}:{decision.get('alignment_score', 0.0)}:{valid_indicators_count}"
         dataset_checksum = hashlib.sha256(checksum_payload.encode("utf-8")).hexdigest()[
@@ -592,19 +668,19 @@ class DashboardRenderer:
                 </div>
                 <div class="ind-metrics-list">
                     <div class="ind-metric-row">
-                        <span class="label" data-tooltip="Latest computed cross-asset ratio level.">Current Ratio <span class="info-tip">?</span></span>
+                        <span class="label">Current Ratio</span>
                         <span class="val font-mono">{val:.4f}</span>
                     </div>
                     <div class="ind-metric-row">
-                        <span class="label" data-tooltip="Position relative to the 50-day simple moving average.">50-MA Status <span class="info-tip">?</span></span>
+                        <span class="label">50-MA Status</span>
                         <span class="val font-mono">{ma_stat}</span>
                     </div>
                     <div class="ind-metric-row">
-                        <span class="label" data-tooltip="15-day normalized linear regression slope.">15d Slope <span class="info-tip">?</span></span>
+                        <span class="label">15d Slope</span>
                         <span class="val font-mono">{slope_pct:+.3f}%</span>
                     </div>
                     <div class="ind-metric-row">
-                        <span class="label" data-tooltip="90-day empirical percentile rank (0% = 90d low, 100% = 90d high).">90d Percentile <span class="info-tip">?</span></span>
+                        <span class="label">90d Percentile</span>
                         <span class="val font-mono">{percentile:.1f}%</span>
                     </div>
                     <div class="progress-track">
@@ -880,6 +956,42 @@ class DashboardRenderer:
                 for w in warnings
             ]
         )
+
+        # Extract Executive Finding Synthesis
+        synthesis = decision.get("unified_synthesis", {})
+        traffic_light = synthesis.get("traffic_light", "YELLOW LIGHT")
+        traffic_color = synthesis.get("traffic_color", "#D97706")
+        composite_score = float(synthesis.get("composite_score", 0.0))
+        direction_title = synthesis.get("direction_title", "Neutral / Sideways")
+        verdict_headline = synthesis.get("verdict_headline", "Market conditions are balanced.")
+        pillars = synthesis.get("pillars", {})
+        p1 = pillars.get("real_economy", {})
+        p2 = pillars.get("borrowing_health", {})
+        p3 = pillars.get("crowd_mood", {})
+        p4 = pillars.get("smart_money", {})
+        action_data = synthesis.get("plain_dollar_action", {})
+        action_headline = action_data.get("headline", "Disciplined Positioning")
+        action_directive = action_data.get("directive", "Maintain disciplined posture")
+        action_cash = action_data.get("cash_collected_dollars", 0)
+        action_rate_val = action_data.get("rate_val", 0.0)
+        action_rate_label = action_data.get("rate_label", "Annualized Return")
+        action_buffer_val = action_data.get("buffer_val", 0.0)
+        action_buffer_label = action_data.get("buffer_label", "Buffer")
+        action_summary = action_data.get("summary", "")
+
+        # Options Microstructure & Practitioner Fields
+        opt_data = ticker_info.get("options_data", {})
+        net_gex_str = opt_data.get("net_gex_formatted", "$0M")
+        gamma_flip_str = f"${opt_data.get('gamma_flip_strike', price):.2f}"
+        gamma_regime_str = opt_data.get("gamma_regime", "NEUTRAL")
+        skew_25d_str = f"{opt_data.get('skew_25d', 2.0):+.1f}%"
+        skew_signal_str = opt_data.get("skew_signal", "Balanced")
+        lottery_ratio_str = f"{opt_data.get('lottery_call_ratio', 10.0):.1f}%"
+        lottery_signal_str = opt_data.get("lottery_call_signal", "Normal Flow")
+        short_float_str = f"{ticker_info.get('short_float_pct', 2.0):.2f}%"
+        days_to_cover_str = f"{ticker_info.get('days_to_cover', 2.5):.1f}d"
+        dark_pool_str = f"{ticker_info.get('dark_pool_ratio_pct', 43.0):.1f}%"
+        moc_imbalance_str = ticker_info.get("moc_imbalance", "Balanced")
 
         html_doc = f"""<!DOCTYPE html>
 <html lang="en" data-theme="{system_theme}" data-theme-mode="system">
@@ -1682,7 +1794,7 @@ class DashboardRenderer:
         /* Heatmap Matrix (DESIGN.md §5: Smooth transition Surface -> #0D9488 -> #4F46E5 -> #E11D48) */
         .heatmap-grid {{
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
             gap: 6px;
             margin-top: 10px;
         }}
@@ -1711,60 +1823,6 @@ class DashboardRenderer:
             margin: 0 8px;
         }}
 
-        /* Tooltips */
-        [data-tooltip] {{
-            position: relative;
-            cursor: help;
-        }}
-
-        .info-tip {{
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background-color: var(--bg-body);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-family: var(--font-mono);
-            font-size: 9.5px;
-            font-weight: 600;
-            margin-left: 3px;
-            vertical-align: middle;
-        }}
-
-        [data-tooltip]::before {{
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: calc(100% + 7px);
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--bg-surface);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 8px 11px;
-            border-radius: var(--radius-pane);
-            font-family: var(--font-sans);
-            font-size: 11.5px;
-            font-weight: 400;
-            line-height: 1.4;
-            text-transform: none;
-            white-space: normal;
-            width: max-content;
-            max-width: 250px;
-            pointer-events: none;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.15s ease;
-            z-index: 999;
-            text-align: left;
-        }}
-
-        [data-tooltip]:hover::before {{
-            opacity: 1;
-            visibility: visible;
-        }}
 
         footer {{
             margin-top: 36px;
@@ -1775,7 +1833,138 @@ class DashboardRenderer:
             border-top: 1px solid var(--border-color);
         }}
 
+        /* Executive Finding Bento Pane (DESIGN.md §1 & §4) */
+        .unified-pane {{
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pane);
+            padding: 18px 20px;
+            margin-bottom: 18px;
+        }}
+
+        .traffic-light-pill {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-body);
+        }}
+
+        .traffic-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }}
+
+        .unified-headline {{
+            font-family: var(--font-serif);
+            font-size: 19px;
+            line-height: 1.35;
+            color: var(--text-primary);
+            margin: 6px 0 16px 0;
+        }}
+
+        .summary-pillars-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }}
+
+        .summary-pillar-cell {{
+            background-color: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pane);
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }}
+
+        .summary-pillar-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }}
+
+        .summary-pillar-name {{
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }}
+
+        .summary-pillar-status {{
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+        }}
+
+        .summary-pillar-detail {{
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }}
+
+        .action-strip {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--viz-teal);
+            border-radius: var(--radius-pane);
+            background-color: var(--bg-body);
+            overflow: hidden;
+            margin-bottom: 8px;
+        }}
+
+        .action-cell {{
+            padding: 10px 14px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }}
+
+        .action-cell:last-child {{
+            border-right: none;
+        }}
+
+        .action-cell-label {{
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }}
+
+        .action-cell-val {{
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }}
+
+        .action-takeaway {{
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            padding: 0 4px;
+        }}
+
         @media (max-width: 960px) {{
+            .summary-pillars-grid {{
+                grid-template-columns: repeat(2, 1fr);
+            }}
+            .action-strip {{
+                grid-template-columns: repeat(2, 1fr);
+            }}
             .executive-bento {{
                 grid-template-columns: repeat(2, 1fr);
             }}
@@ -1796,7 +1985,6 @@ class DashboardRenderer:
     <header>
         <div class="brand">
             <h1 class="brand-title">Macro Flow Stock Navigator</h1>
-            <span class="brand-subtitle">Cross-Asset Regime Alignment, Structural Topology &amp; Options Execution Studio</span>
         </div>
         <div class="header-actions">
             <div class="telemetry-status-pill" id="liveTelemetryPill">
@@ -1845,34 +2033,102 @@ class DashboardRenderer:
                     <span id="execTickerChange" class="ticker-change {chg_class} font-mono">{chg_str}</span>
                 </div>
             </div>
-            <div class="exec-cell" data-tooltip="Overall directional posture synthesized from 8 cross-asset macro ratios and technical moving averages.">
-                <span class="cell-label">Macro Signal <span class="info-tip">?</span></span>
+            <div class="exec-cell">
+                <span class="cell-label">Macro Signal</span>
                 <span class="cell-value">
                     <span id="execSignalBadge" class="badge {signal_badge_class}">{action_badge}</span>
                 </span>
             </div>
-            <div class="exec-cell" data-tooltip="Structural equity classification determining factor sensitivity weights.">
-                <span class="cell-label">Stock Archetype <span class="info-tip">?</span></span>
+            <div class="exec-cell">
+                <span class="cell-label">Stock Archetype</span>
                 <span id="execArchetypeName" class="cell-value">{archetype_name}</span>
             </div>
-            <div class="exec-cell" data-tooltip="Weighted net macro favorability score (-100 to +100).">
-                <span class="cell-label">Macro Alignment <span class="info-tip">?</span></span>
+            <div class="exec-cell">
+                <span class="cell-label">Macro Alignment</span>
                 <span id="execAlignmentScore" class="cell-value font-mono">{decision.get('alignment_score', 0.0):+.1f} / 100</span>
             </div>
-            <div class="exec-cell" data-tooltip="Active cross-asset regime classification.">
-                <span class="cell-label">Macro Regime <span class="info-tip">?</span></span>
+            <div class="exec-cell">
+                <span class="cell-label">Macro Regime</span>
                 <span id="execRegimeName" class="cell-value">{macro_regime.get('name', 'Balanced Rotation')}</span>
             </div>
-            <div class="exec-cell" data-tooltip="Implied Volatility minus 30-day Realized Volatility (Volatility Risk Premium).">
-                <span class="cell-label">IV vs 30d RV <span class="info-tip">?</span></span>
+            <div class="exec-cell">
+                <span class="cell-label">IV vs 30d RV</span>
                 <span id="execIvRvSpread" class="cell-value font-mono {iv_rv_class}">{iv_rv_spread_val:+.1f}%</span>
             </div>
+        </section>
+
+        <!-- Single-Level Bento Section: Executive Finding -->
+        <section class="unified-pane" aria-label="Executive Finding">
+            <div class="pane-header">
+                <div>
+                    <h2 class="pane-title">Executive Finding</h2>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="traffic-light-pill font-mono" style="color: {traffic_color}; border-color: {traffic_color};">
+                        <span class="traffic-dot" style="background-color: {traffic_color};"></span>
+                        {traffic_light} &bull; {direction_title}
+                    </span>
+                    <span class="badge font-mono">{composite_score:+.1f} / 100</span>
+                </div>
+            </div>
+            <div class="unified-headline font-serif">
+                "{verdict_headline}"
+            </div>
+            <div class="summary-pillars-grid">
+                <div class="summary-pillar-cell">
+                    <div class="summary-pillar-header">
+                        <span class="summary-pillar-name">Real Economy</span>
+                        <span class="summary-pillar-status font-mono" style="color: var(--viz-teal);">{p1.get('status', 'Steady')}</span>
+                    </div>
+                    <div class="summary-pillar-detail">{p1.get('explanation', '')}</div>
+                </div>
+                <div class="summary-pillar-cell">
+                    <div class="summary-pillar-header">
+                        <span class="summary-pillar-name">Credit Health</span>
+                        <span class="summary-pillar-status font-mono" style="color: var(--viz-indigo);">{p2.get('status', 'Normal')}</span>
+                    </div>
+                    <div class="summary-pillar-detail">{p2.get('explanation', '')}</div>
+                </div>
+                <div class="summary-pillar-cell">
+                    <div class="summary-pillar-header">
+                        <span class="summary-pillar-name">Market Sentiment</span>
+                        <span class="summary-pillar-status font-mono" style="color: var(--viz-amber);">{p3.get('status', 'Calm')}</span>
+                    </div>
+                    <div class="summary-pillar-detail">{p3.get('explanation', '')}</div>
+                </div>
+                <div class="summary-pillar-cell">
+                    <div class="summary-pillar-header">
+                        <span class="summary-pillar-name">Institutional Floor</span>
+                        <span class="summary-pillar-status font-mono" style="color: var(--viz-emerald);">{p4.get('safety_floor', '$0.00')}</span>
+                    </div>
+                    <div class="summary-pillar-detail">{p4.get('explanation', '')}</div>
+                </div>
+            </div>
+            <div class="action-strip">
+                <div class="action-cell">
+                    <div class="action-cell-label">Action Directive</div>
+                    <div class="action-cell-val font-mono">{action_directive}</div>
+                </div>
+                <div class="action-cell">
+                    <div class="action-cell-label">Upfront Cash Income</div>
+                    <div class="action-cell-val font-mono state-positive">+${action_cash:,}</div>
+                </div>
+                <div class="action-cell">
+                    <div class="action-cell-label">{action_rate_label}</div>
+                    <div class="action-cell-val font-mono">+{action_rate_val:.1f}%</div>
+                </div>
+                <div class="action-cell">
+                    <div class="action-cell-label">{action_buffer_label}</div>
+                    <div class="action-cell-val font-mono">{action_buffer_val:+.1f}%</div>
+                </div>
+            </div>
+            <div class="action-takeaway text-muted-xs font-mono">{action_summary}</div>
         </section>
 
         <!-- Navigation Tabs -->
         <nav class="tab-bar" aria-label="Dashboard Sections">
             <button class="tab-btn active" onclick="switchTab('overview')">Executive Overview &amp; Topology</button>
-            <button class="tab-btn" onclick="switchTab('indicators')">8 Macro Indicators</button>
+            <button class="tab-btn" onclick="switchTab('indicators')">Macro Indicators ({num_indicators})</button>
             <button class="tab-btn" onclick="switchTab('charts')">Trend &amp; Factor Charts</button>
             <button class="tab-btn" onclick="switchTab('playbook')">Options Playbook &amp; Simulator</button>
             <button class="tab-btn" onclick="switchTab('provenance')">Data Provenance &amp; Validation</button>
@@ -1902,20 +2158,20 @@ class DashboardRenderer:
                         <div style="font-size: 12px; color: var(--text-secondary);">{macro_regime.get('summary', '')}</div>
                     </div>
                     <div class="partition-strip bottom-flush">
-                        <div class="partition-cell" data-tooltip="50-day simple moving average benchmark.">
-                            <div class="label">50-Day MA <span class="info-tip">?</span></div>
+                        <div class="partition-cell">
+                            <div class="label">50-Day MA</div>
                             <div class="val font-mono">${ticker_info.get('ma50', 0.0):.2f} ({ticker_info.get('diff_ma50_pct', 0.0):+.2f}%)</div>
                         </div>
-                        <div class="partition-cell" data-tooltip="200-day institutional trend filter.">
-                            <div class="label">200-Day MA <span class="info-tip">?</span></div>
+                        <div class="partition-cell">
+                            <div class="label">200-Day MA</div>
                             <div class="val font-mono">${ticker_info.get('ma200', 0.0):.2f} ({ticker_info.get('diff_ma200_pct', 0.0):+.2f}%)</div>
                         </div>
-                        <div class="partition-cell" data-tooltip="Realized covariance beta vs SPY.">
-                            <div class="label">Beta (vs SPY) <span class="info-tip">?</span></div>
+                        <div class="partition-cell">
+                            <div class="label">Beta (vs SPY)</div>
                             <div class="val font-mono">{ticker_info.get('beta', 1.0):.2f}</div>
                         </div>
-                        <div class="partition-cell" data-tooltip="30-day annualized historical volatility.">
-                            <div class="label">30d Realized Vol <span class="info-tip">?</span></div>
+                        <div class="partition-cell">
+                            <div class="label">30d Realized Vol</div>
                             <div class="val font-mono">{ticker_info.get('historical_vol_30d', 0.0):.1f}%</div>
                         </div>
                     </div>
@@ -2000,7 +2256,7 @@ class DashboardRenderer:
                 <div class="pane-header">
                     <div>
                         <h2 class="pane-title">Cross-Asset Concentration &amp; Regime Heatmap Matrix</h2>
-                        <div class="pane-desc">90-day factor percentile intensity across all 8 ratios (click any cell to inspect series)</div>
+                        <div class="pane-desc">90-day factor percentile intensity across all {num_indicators} ratios (click any cell to inspect series)</div>
                     </div>
                     <div class="font-mono text-muted-xs">
                         0% <span class="heatmap-gradient-bar"></span> 100%
@@ -2041,11 +2297,11 @@ class DashboardRenderer:
         </section>
 
         <!-- ========================================================================
-             TAB 2: 8 MACRO INDICATORS
+             TAB 2: MACRO INDICATORS ({num_indicators})
              ======================================================================== -->
         <section id="tab-indicators" class="tab-content">
             <div class="filter-group">
-                <button class="filter-btn active" onclick="filterIndicators('all', this)">All Ratios (8)</button>
+                <button class="filter-btn active" onclick="filterIndicators('all', this)">All Ratios ({num_indicators})</button>
                 <button class="filter-btn" onclick="filterIndicators('trend-bullish', this)">Bullish / Rising</button>
                 <button class="filter-btn" onclick="filterIndicators('trend-bearish', this)">Bearish / Falling</button>
                 <button class="filter-btn" onclick="filterIndicators('trend-neutral', this)">Neutral / Consolidating</button>
@@ -2077,7 +2333,7 @@ class DashboardRenderer:
                     <div class="pane-header">
                         <div>
                             <h2 class="pane-title">Macro Indicators Percentile Radar</h2>
-                            <div class="pane-desc">90-Day Cross-Asset Percentile Distribution (All 8 Ratios)</div>
+                            <div class="pane-desc">90-Day Cross-Asset Percentile Distribution (All {num_indicators} Ratios)</div>
                         </div>
                         <span class="font-mono text-muted-xs">0–100% Scale</span>
                     </div>
@@ -2129,9 +2385,9 @@ class DashboardRenderer:
                 </div>
             </div>
 
-            <!-- All 8 Macro Indicator Multi-Chart Grid -->
+            <!-- All Macro Indicator Multi-Chart Grid -->
             <div class="bento-pane" style="margin-bottom: 12px; padding: 12px 18px;">
-                <h2 class="pane-title">All 8 Macro Indicators Trend Matrix</h2>
+                <h2 class="pane-title">All {num_indicators} Macro Indicators Trend Matrix</h2>
                 <div class="pane-desc">Simultaneous multi-factor ratio &amp; 50-MA coordinate plots</div>
             </div>
 
@@ -2213,6 +2469,42 @@ class DashboardRenderer:
                     <div class="partition-cell">
                         <div class="label">30d Expected Move (±1σ)</div>
                         <div class="val font-mono">±${opt_analytics.get('expected_move_30d', 0.0):.2f} [{opt_analytics.get('expected_move_lower', 0.0):.2f}–{opt_analytics.get('expected_move_upper', 0.0):.2f}]</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Microstructure & Practitioner Signals Strip -->
+            <div class="bento-pane">
+                <div class="pane-header">
+                    <div>
+                        <h2 class="pane-title">Market Microstructure, Whale Gamma &amp; Practitioner Signals</h2>
+                        <div class="pane-desc">Dealer Gamma Exposure (GEX), Flip Safety Floor, 25Δ Skew, Retail 5Δ Call Surge &amp; Dark Pool Flow</div>
+                    </div>
+                </div>
+                <div class="partition-strip bottom-flush">
+                    <div class="partition-cell">
+                        <div class="label">Net Dealer GEX</div>
+                        <div class="val font-mono">{net_gex_str}</div>
+                    </div>
+                    <div class="partition-cell">
+                        <div class="label">Gamma Flip Floor</div>
+                        <div class="val font-mono state-nominal">{gamma_flip_str}</div>
+                    </div>
+                    <div class="partition-cell">
+                        <div class="label">25Δ Put-Call Skew</div>
+                        <div class="val font-mono">{skew_25d_str}</div>
+                    </div>
+                    <div class="partition-cell">
+                        <div class="label">Retail 5Δ Call Surge</div>
+                        <div class="val font-mono">{lottery_ratio_str}</div>
+                    </div>
+                    <div class="partition-cell">
+                        <div class="label">Short Float / DTC</div>
+                        <div class="val font-mono">{short_float_str} ({days_to_cover_str})</div>
+                    </div>
+                    <div class="partition-cell">
+                        <div class="label">Dark Pool &amp; MOC</div>
+                        <div class="val font-mono">{dark_pool_str} ({moc_imbalance_str})</div>
                     </div>
                 </div>
             </div>
@@ -2528,7 +2820,7 @@ class DashboardRenderer:
                 </div>
                 <div id="telemetryEventLog" class="font-mono" style="font-size: 11.5px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px;">
                     <div>[{generated_utc}] [INIT] Loaded empirical dataset {provenance_data['dataset_id']} (SHA-256: {provenance_data['sha256_prefix']}).</div>
-                    <div>[{generated_utc}] [VALIDATION] Verified {valid_indicators_count}/8 cross-asset ratio series and {total_calls + total_puts} option contracts.</div>
+                    <div>[{generated_utc}] [VALIDATION] Verified {valid_indicators_count}/{num_indicators} cross-asset ratio series and {total_calls + total_puts} option contracts.</div>
                     <div>[{generated_utc}] [THEME] Host OS theme fallback detected as '{system_theme}'; matchMedia listener active.</div>
                 </div>
             </div>
@@ -2537,7 +2829,7 @@ class DashboardRenderer:
     </main>
 
     <footer>
-        Macro Flow Stock Navigator &bull; Empirical Cross-Asset Market Data &amp; Options Execution Studio &bull; Dataset <span class="font-mono">{provenance_data['dataset_id']}</span>
+        Macro Flow Stock Navigator &bull; Dataset <span class="font-mono">{provenance_data['dataset_id']}</span> &bull; {last_trade_date}
     </footer>
 
     <script>
@@ -2819,7 +3111,7 @@ class DashboardRenderer:
             }});
             edges.push({{ from: "TICKER", to: "OPTIONS", color: VIZ_PALETTE.amber, weight: 2.0 }});
 
-            // 8 Cross-Asset Macro Indicator Nodes on Outer Elliptical Ring
+            // Cross-Asset Macro Indicator Nodes on Outer Elliptical Ring
             const indKeys = Object.keys(INDICATORS_DATA);
             const rx = 248;
             const ry = 132;
