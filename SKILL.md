@@ -13,7 +13,7 @@ description: >-
 
 # Macro Flow Stock Navigator
 
-An enterprise-grade cross-asset decision engine for AI agent harnesses. It bridges macroeconomic regime dynamics with single-stock positioning and tactical options execution (Selling Covered Calls & Cash-Secured Puts) using real-time market data.
+A cross-asset decision engine for AI agent harnesses. It bridges macroeconomic regime dynamics with single-stock positioning and tactical options execution (Selling Covered Calls & Cash-Secured Puts) using real-time market data.
 
 ---
 

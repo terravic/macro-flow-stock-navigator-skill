@@ -1,10 +1,10 @@
 # Macro Flow Stock Navigator
 
-**Version:** 1.0.0 | **Supported Harnesses:** Agent Harnesses, AI Assistants | **License:** Apache 2.0 | **Tests:** 8 Passed | **Data:** Real-Time Public Market Data
+**Version:** 1.0.0 | **Supported Harnesses:** Agent Harnesses, AI Assistants | **License:** Apache 2.0 | **Tests:** 9 Passed | **Data:** Real-Time Public Market Data
 
-Macro Flow Stock Navigator is an enterprise-grade agent skill and algorithmic decision engine designed for AI agent harnesses and execution environments complying with the `SKILL.md` specification.
+Macro Flow Stock Navigator is an algorithmic decision engine and agent skill designed for AI agent harnesses and execution environments complying with the `SKILL.md` specification.
 
-It bridges high-level cross-asset macroeconomic regimes with single-stock positioning and quantitative derivative strategies. By calculating 8 real-time macro ratio indicators from live market data, determining stock archetypes, and running a weighted alignment matrix, the skill produces an executive trading decision dashboard with clear status signals (STRONG BUY, ACCUMULATE, NEUTRAL / RANGING, PROTECT / SELL), tailored **Covered Calls** and **Cash-Secured Puts** options recommendations, institutional Unusual Option Activity (UOA) tracking, and an **Interactive Web UI Dashboard** with dark/light themes and real-time interactive charts.
+It bridges high-level cross-asset macroeconomic regimes with single-stock positioning and quantitative derivative strategies. By calculating 14 real-time macro ratio indicators from live market data, determining stock archetypes, and running a weighted alignment matrix, the skill produces an executive trading decision dashboard with clear status signals (STRONG BUY, ACCUMULATE, NEUTRAL / RANGING, PROTECT / SELL), tailored **Covered Calls** and **Cash-Secured Puts** options recommendations, institutional Unusual Option Activity (UOA) tracking, and an **Interactive Web UI Dashboard** with dark/light themes and real-time interactive charts.
 
 ![Macro Flow Stock Navigator Architecture and Workflow](docs/images/macro_flow_workflow.jpg)
 
@@ -17,7 +17,7 @@ It bridges high-level cross-asset macroeconomic regimes with single-stock positi
 4. [Sample Prompts Library](#sample-prompts-library)
 5. [How to Read the Output (Executive Decoder)](#how-to-read-the-output-executive-decoder)
 6. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-7. [The 8 Macro Ratio Indicators](#the-8-macro-ratio-indicators)
+7. [The 14 Multi-Dimensional Macro Indicators](#the-14-multi-dimensional-macro-indicators)
 8. [Stock Archetype Taxonomy](#stock-archetype-taxonomy)
 9. [Strategic Options Playbook Matrix](#strategic-options-playbook-matrix)
 10. [Running the Python Code (Technical Guide)](#running-the-python-code-technical-guide)
@@ -29,10 +29,10 @@ It bridges high-level cross-asset macroeconomic regimes with single-stock positi
 
 ## Key Features and Capabilities
 
-- **Real-Time Cross-Asset Macro Regime Detection:** Synthesizes 8 distinct market ratios spanning breadth, gold, tech momentum, small caps, market valuation, high beta, cyclical consumption, and volatility using live market data.
+- **Real-Time Cross-Asset Macro Regime Detection:** Synthesizes 14 distinct market ratios spanning breadth, gold, tech momentum, small caps, market valuation, high beta, cyclical consumption, volatility, physical copper/gold pulse, credit solvency, real cost of capital, volatility term structure, biotechnology innovation, and cardboard box shipping velocity using live market data.
 - **Stock Archetype Sensitivity Engine:** Dynamically classifies equities into 5 core archetypes (Mega-Cap Tech, High-Beta Speculative Growth, Cyclicals, Defensives, Financials) and applies tailored mathematical sensitivity weights.
-- **Concise Executive Dashboard:** Delivers clean Markdown cards with summary status tables, status text indicators, force decomposition (tailwinds vs. headwinds), and options execution tables.
-- **Interactive Web UI Dashboard:** Generates a standalone, responsive HTML/JS/CSS dashboard rendered in a UI iframe with light/dark theme switching, real-time visual price trends, macro factor radar charts, options screener matrices, and an options payoff simulator.
+- **Concise Executive Finding Dashboard:** Delivers clean Markdown cards with structured health status tables, force decomposition (tailwinds vs. headwinds), and options execution tables.
+- **Interactive Web UI Dashboard:** Generates a standalone, responsive HTML/JS/CSS dashboard rendered in a UI iframe with light/dark/system theme switching, real-time visual price trends, macro factor radar charts, options screener matrices, and an options payoff simulator.
 - **Quantitative Options Execution:** Formulates exact option parameters including Delta targeting (Conservative 0.20Δ, Balanced 0.30Δ, Aggressive 0.40Δ), optimal strike placement, target DTE (30-45 DTE), and risk-defined stop-loss criteria.
 - **Tailored Portfolio Options Sizing:** Supports custom inputs for shares held (to provide exact covered call contracts, cashflow, and upside targets) or available cash capital (to provide cash-secured put contracts, collateral allocation, and net effective buy prices).
 - **Live Data Engine:** Retrieves up-to-date market feeds directly for accurate real-time analysis.
@@ -44,16 +44,19 @@ It bridges high-level cross-asset macroeconomic regimes with single-stock positi
 The skill includes full support for rich, interactive **Web UI Dashboards** rendered directly inside UI iframe webviews in supported agent harnesses.
 
 ### Web Dashboard Features:
-1. **Light / Dark Mode Toggle:**
-   - Smooth instant switching between dark theme (deep slate/charcoal) and light theme (clean high-contrast gray/white).
+1. **Light / Dark / System Mode Theme Selector:**
+   - Smooth instant switching between dark theme (deep charcoal), light theme (clean high-contrast off-white/gray), and automatic operating-system theme detection.
    - Theme persistence with fallback storage handling and dynamic real-time color adaptation for all chart canvases, gridlines, typography, and card containers.
-2. **Interactive Tab Navigation:**
+2. **Executive Finding Bento Section:**
+   - Subtle background contrast tone (`#EEEDE9` in light mode, `#111217` in dark mode) highlighting the primary verdict and action directives above the tabs.
+   - 4 Core Health Pillars (Real Economy, Credit Health, Market Sentiment, Institutional Floor) with concise findings.
+   - Quantitative Action Strip detailing Action Directive, Upfront Cash Income, Annualized Return, and Buffer.
+3. **Interactive Tab Navigation:**
    - **Executive Overview:** High-level KPIs, Macro Alignment Score meter (-100 to +100), conviction metrics, 50-MA/200-MA technical health, and tailwinds vs. headwinds decomposition.
-   - **8 Macro Indicators Grid:** Interactive card matrix for all 8 cross-asset ratios with real-time percentile bars and one-click filtering (All, Bullish Signals, Bearish Signals, Neutral Signals).
+   - **Macro Indicators (14 Indicators):** Interactive card matrix for all 14 cross-asset ratios with real-time percentile bars and one-click filtering (All, Bullish Signals, Bearish Signals, Neutral Signals).
    - **Trend & Factor Charts:** Price trend visualization comparing the target stock daily close against its 50-day and 200-day moving averages, a 90-day multi-factor percentile radar chart, and individual factor time-series charts.
    - **Options Playbook, Live Chain, & Simulator:** Full options parameters table, real-time option chain explorer, unusual options flow tracker, and an **Interactive Strategy Payoff Simulator** where users can drag a stock price slider to visualize profit/loss zones and breakeven boundaries at expiration.
-3. **Educational Hover Tooltips:**
-   - Non-intrusive interactive tooltips across all financial metrics, Greek parameters (Delta, Theta), ratios, and table columns explaining concepts in plain language.
+   - **Data Provenance & Validation:** Dataset IDs, SHA-256 verification hashes, and timestamped audit records.
 
 ### How to Generate the Web UI Dashboard:
 ```bash
@@ -71,7 +74,7 @@ Pre-rendered sample HTML dashboards are available in the [`sample_data/`](sample
 ## Non-Technical User Guide
 
 ### What Is This Skill?
-When investing or trading, evaluating an individual company in isolation is only half the battle. Broad economic forces—interest rates, market breadth, inflation fears, and risk appetite—often drive stock prices more than individual company news.
+When investing or trading, evaluating an individual company in isolation is only half the battle. Broad economic forces—interest rates, market breadth, corporate debt health, and investor sentiment—often drive stock prices more than individual company headlines.
 
 The **Macro Flow Stock Navigator** is an automated analytical assistant that answers practical questions for any US stock using real-time market data:
 1. **Is the broader market environment helping or hurting this specific stock right now?**
@@ -80,7 +83,7 @@ The **Macro Flow Stock Navigator** is an automated analytical assistant that ans
 4. **If I own shares or have cash, exactly how many contracts should I sell and what income will it generate?**
 
 ### How to Use This Skill (No Coding Required)
-You do not need to install software, write code, or use a terminal. When this skill is active in your AI chat interface, you simply converse with the AI in plain English.
+You do not need to install software, write code, or use a terminal. When this skill is active in your AI chat interface, you simply converse with the AI in natural language.
 
 ```mermaid
 sequenceDiagram
@@ -93,7 +96,7 @@ sequenceDiagram
     User->>Agent: "Analyze SOFI macro alignment and suggest an options trade"
     Note over Agent: Assistant recognizes stock request and activates skill
     Agent->>Tool: Executes analysis for ticker "SOFI"
-    Tool->>Feed: Fetches live 8 macro ratios, SOFI price history, and option chains
+    Tool->>Feed: Fetches live 14 macro ratios, SOFI price history, and option chains
     Tool->>Tool: Computes moving averages, sensitivities, and options rules
     Tool-->>Agent: Returns formatted executive dashboard
     Agent-->>User: Presents decision dashboard in chat
@@ -101,26 +104,26 @@ sequenceDiagram
 
 ### 3 Simple Steps:
 1. **Open your AI chat window** where the skill is enabled.
-2. **Type your request in plain English** with any US stock ticker symbol (e.g., GOOG, SOFI, NVDA, AAPL, TSLA, CAT, JNJ, JPM).
+2. **Type your request** with any US stock ticker symbol (e.g., GOOG, SOFI, NVDA, AAPL, TSLA, CAT, JNJ, JPM).
 3. **Review your decision dashboard**, which clearly presents the stock signal, macro tailwinds, headwinds, and recommended option trade parameters.
 
 ### Practical Examples for Common Scenarios
 
 #### Example A: Checking Stock Macro Health
 - **User Prompt:** *"Can you check the macro environment for GOOG? Is it a good time to buy or should I wait?"*
-- **What the AI does:** The AI analyzes GOOG as a Mega-Cap Tech company, measures live tech momentum (`NDX/SPX`), broad market breadth (`RSP/SPY`), and fear levels (`VIX/SPX`), and delivers a summary showing whether GOOG has positive tailwinds or negative headwinds.
+- **What the AI does:** The AI analyzes GOOG as a Mega-Cap Tech company, measures live tech momentum (`NDX/SPX`), broad market breadth (`RSP/SPY`), real cost of capital (`TIP/IEF`), and fear levels (`VIX/SPX`), and delivers an Executive Finding showing whether GOOG has positive tailwinds or negative headwinds.
 
 #### Example B: Personalized Covered Call Recommendation (Shares Held)
 - **User Prompt:** *"I own 300 shares of GOOG. What covered call strike should I sell to generate income?"*
-- **What the AI does:** The AI calculates that 300 shares supports 3 covered call contracts (100 shares per contract), screens optimal strikes (e.g., $340.00 strike at 0.30 Delta), and calculates the exact upfront cash income (e.g., $777.00), annualized yield (+141.0%), downside protection buffer, and max profit if the shares are called away.
+- **What the AI does:** The AI calculates that 300 shares supports 3 covered call contracts (100 shares per contract), screens optimal strikes (e.g., $340.00 strike at 0.30 Delta), and calculates the exact upfront cash income, annualized yield, downside protection buffer, and max profit if the shares are called away.
 
 #### Example C: Personalized Cash-Secured Put Recommendation (Cash Available)
 - **User Prompt:** *"I have $50,000 cash and want to accumulate SOFI or GOOG at a discount. What cash-secured puts make sense?"*
-- **What the AI does:** The AI divides the $50,000 cash by the required collateral per contract, selects conservative and balanced strikes below key support levels (e.g., $330.00 strike for GOOG requiring $33,000 collateral), and reports the upfront cash premium collected, the effective net buy price ($327.72 vs. current $335.31 spot), and the annualized Return on Capital (ROC).
+- **What the AI does:** The AI divides the $50,000 cash by the required collateral per contract, selects conservative and balanced strikes below key support levels (e.g., $330.00 strike for GOOG requiring $33,000 collateral), and reports the upfront cash premium collected, the effective net buy price, and the annualized Return on Capital (ROC).
 
 #### Example D: Comparing Two Stocks
 - **User Prompt:** *"Compare CAT and NVDA. Which stock is benefiting more from today's macro trends?"*
-- **What the AI does:** The AI runs parallel assessments, contrasting cyclical industrial sensitivity against semiconductor tech momentum to clarify which asset has stronger macro support.
+- **What the AI does:** The AI runs parallel assessments, contrasting cyclical industrial sensitivity (copper/gold, cardboard shipping) against semiconductor tech momentum to clarify which asset has stronger macro support.
 
 ---
 
@@ -134,7 +137,7 @@ Copy and paste any of the sample prompts below directly into your AI assistant:
 | **Single Stock Analysis** | *"Analyze `GOOG` using the Macro Flow Stock Navigator. Is the macro environment bullish or bearish for it today?"* |
 | **Speculative Growth Check** | *"Is the current market flow favorable for `SOFI`? Check small-cap breadth and speculative appetite."* |
 | **Mega-Cap Tech Leadership** | *"Run a macro flow check on `NVDA`. Is tech momentum still leading the market, or is money rotating into defensives?"* |
-| **Plain-English Request** | *"Evaluate `AAPL` with the Macro Flow Stock Navigator and explain the results concisely in business terms."* |
+| **Executive Finding Request** | *"Evaluate `AAPL` with the Macro Flow Stock Navigator and explain the results concisely in business terms."* |
 
 ### 2. Personalized Options Strategies (Shares Held or Cash Capital)
 | Goal | Copy-Paste Sample Prompt |
@@ -175,7 +178,7 @@ When the skill completes its analysis, it renders a concise structured dashboard
 | Metric | Value | Metric | Value |
 | :--- | :--- | :--- | :--- |
 | **Current Price** | $335.31 (+0.45%) | **Stock Archetype** | Mega-Cap Tech / High Quality Growth |
-| **Recommended Action** | NEUTRAL (RANGING) | **Macro Alignment** | [█████░░░░░] +0.0/100 (Neutral) |
+| **Recommended Action** | NEUTRAL (RANGING) | **Macro Alignment** | [=====-----] +0.0/100 (Neutral) |
 | **Macro Regime** | Consolidation / Sector Rotation | **Last Session Close** | 2026-09-04 |
 | **Analysis Timestamp** | 2026-09-08 01:16 UTC | **Market Status** | Real-Time / Last Close (2026-09-04) |
 ```
@@ -188,7 +191,7 @@ When shares or cash amounts are provided, the dashboard calculates:
 - **Covered Call Capacity:** Exact contracts supported, strike selection, upfront cash income, and called-away total return.
 - **Cash-Secured Put Capacity:** Contracts supported, collateral deployed, upfront cash credit, and net discount cost basis.
 
-### 3. Macro Cross-Asset Indicators (8 Ratios)
+### 3. Macro Cross-Asset Indicators (14 Ratios)
 - **`RSP / SPY` (Market Breadth):** Equal-weight vs. cap-weight S&P 500 (broad participation vs. narrow concentration).
 - **`GLD / SPX` (Risk Sentiment):** Gold vs. S&P 500 (falling = risk-on pro-growth; rising = safe-haven flight).
 - **`NDX / SPX` (Tech Momentum):** Nasdaq 100 vs. S&P 500 (tech leadership and multiple expansion).
@@ -197,6 +200,12 @@ When shares or cash amounts are provided, the dashboard calculates:
 - **`SPHB / SPLV` (Speculative Appetite):** High Beta vs. Low Volatility (risk tolerance vs. defensiveness).
 - **`XLY / XLP` (Cyclical Health):** Discretionary vs. Staples (consumer confidence vs. belt-tightening).
 - **`VIX / SPX` (Normalized Fear):** Volatility index normalized against broad index trend.
+- **`COPX / GLD` (Industrial Pulse):** Copper miners vs. gold (physical manufacturing demand vs. monetary fear).
+- **`HYG / LQD` (Credit Solvency):** High yield vs. investment grade corporate debt (credit spread risk).
+- **`TIP / IEF` (Real Cost of Capital):** TIPS vs. Treasuries (inflation expectations and real discount rates).
+- **`VIX9D / VIX` (Term Structure Inversion):** 9-day vs. 30-day volatility ratio (acute near-term panic detector).
+- **`XBI / XLV` (Biotech Innovation):** Speculative biotech vs. mature pharmaceuticals.
+- **`PKG / SPY` (Box Shipping Velocity):** Containerboard packaging throughput vs. broad market.
 
 ### 4. Macro Drivers and Sensitivity Analysis
 - **Tailwinds:** Macro forces actively supporting upward momentum.
@@ -212,7 +221,7 @@ When shares or cash amounts are provided, the dashboard calculates:
 ## Frequently Asked Questions (FAQ)
 
 ### Q1: Do I need any API keys or paid financial subscriptions?
-**No.** The skill automatically fetches free public market data in real time.
+**No.** The skill automatically fetches public market data in real time.
 
 ### Q2: What stock ticker symbols work?
 **Any publicly traded US equity or ETF.** Examples: GOOG, AAPL, MSFT, NVDA, SOFI, PLTR, TSLA, CAT, JNJ, JPM, SPY, QQQ, IWM.
@@ -222,7 +231,7 @@ When shares or cash amounts are provided, the dashboard calculates:
 
 ---
 
-## The 8 Macro Ratio Indicators
+## The 14 Multi-Dimensional Macro Indicators
 
 | Indicator | Ratio Tickers | What It Measures | Favorable Condition |
 | :--- | :--- | :--- | :--- |
@@ -234,6 +243,12 @@ When shares or cash amounts are provided, the dashboard calculates:
 | **Speculative Appetite** | `SPHB / SPLV` | High Beta vs. Low Volatility S&P | Rising = Speculative risk-seeking; Falling = Capital preservation |
 | **Cyclical Growth** | `XLY / XLP` | Consumer Discretionary vs. Staples | Rising = Strong consumer spending confidence; Falling = Defensive belt-tightening |
 | **Fear Normalization** | `VIX / SPX` | Normalized CBOE Volatility Index | Falling = Volatility compression; Spiking = Capitulation or stress |
+| **Industrial Pulse** | `COPX / GLD` | Copper Miners vs. Gold | Rising = Real-world physical manufacturing expansion; Falling = Monetary safe haven flight |
+| **Credit Solvency** | `HYG / LQD` | High Yield vs. Investment Grade Bonds | Rising = Tight credit spreads & corporate solvency; Falling = Default anxiety |
+| **Real Cost of Capital** | `TIP / IEF` | TIPS vs. Nominal Treasuries | Rising = Real yields supportive of pricing power; Falling = Capital tightening |
+| **Volatility Inversion** | `VIX9D / VIX` | 9-Day Volatility vs. 30-Day Volatility | Ratio < 0.95 = Calm contango; Ratio > 1.05 = Acute panic backwardation |
+| **Biotech Vitality** | `XBI / XLV` | Biotech Innovation vs. Mature Healthcare | Rising = Clinical risk tolerance & speculative vitality; Falling = Defensive health rotation |
+| **Shipping Velocity** | `PKG / SPY` | Cardboard Packaging vs. S&P 500 | Rising = Physical goods & freight volume expanding; Falling = Supply chain contraction |
 
 *For detailed formulas and historical regimes, see [`references/macro_indicators_guide.md`](references/macro_indicators_guide.md).*
 
@@ -358,6 +373,9 @@ macro-flow-stock-navigator-skill/
 ├── LICENSE                           # Apache License 2.0
 ├── README.md                         # Comprehensive documentation and non-technical guide
 ├── SKILL.md                          # Primary Agent Skill specification
+├── DESIGN.md                         # UI dashboard design specification and theme system
+├── prd.md                            # Product Requirement Document
+├── dashboard.html                    # Standalone interactive HTML dashboard
 ├── plugin.json                       # Skill Plug-in manifest
 ├── pyproject.toml                    # Package metadata and build configuration
 ├── requirements.txt                  # Python dependencies
@@ -366,7 +384,7 @@ macro-flow-stock-navigator-skill/
 │       └── macro_flow_workflow.jpg   # Architecture & workflow diagram
 ├── references/
 │   ├── archetype_taxonomy.md         # Stock archetype classification & sensitivity rules
-│   ├── macro_indicators_guide.md     # Deep dive into the 8 macro ratio indicators
+│   ├── macro_indicators_guide.md     # Deep dive into the 14 macro ratio indicators
 │   └── options_playbook_matrix.md    # Options strategy selection & execution matrix
 ├── sample_data/
 │   ├── sample_dashboard_GOOG.html    # Interactive Web UI Dashboard for GOOG
@@ -381,9 +399,9 @@ macro-flow-stock-navigator-skill/
 ├── src/
 │   ├── __init__.py
 │   ├── config.py                     # Stock archetypes, indicator weights, and options rules
-│   ├── data_fetcher.py               # Real-time live market data fetcher
+│   ├── data_fetcher.py               # Real-time live market data fetcher & microstructure
 │   ├── decision_engine.py            # Alignment scoring & options playbook recommender
-│   ├── indicators.py                 # Mathematical engine for 8 macro ratios
+│   ├── indicators.py                 # Mathematical engine for 14 macro ratios
 │   └── renderer.py                   # Executive Markdown, JSON, and Web UI HTML formatters
 ├── templates/
 │   └── dashboard_template.html       # Standalone HTML/CSS/JS template for Web UI dashboards

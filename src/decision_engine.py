@@ -595,8 +595,8 @@ class AlignmentDecisionEngine:
         Creates a clean visual gauge.
         """
         normalized = int(np.clip((score + 100.0) / 20.0, 0, 10))
-        filled = "█" * normalized
-        empty = "░" * (10 - normalized)
+        filled = "=" * normalized
+        empty = "-" * (10 - normalized)
         
         if score >= 20:
             color_badge = "Bullish"

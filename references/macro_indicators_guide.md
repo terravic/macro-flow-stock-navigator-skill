@@ -1,6 +1,6 @@
 # Macro Indicators Guide & Ratio Methodology
 
-This reference document outlines the mathematical formulas, market dynamics, and regime interpretation for the 8 core macro ratio indicators computed by the **Macro Flow Stock Navigator**.
+This reference document outlines the mathematical formulas, market dynamics, and regime interpretation for the 14 core macro ratio indicators computed by the **Macro Flow Stock Navigator**.
 
 ---
 
@@ -99,3 +99,76 @@ This reference document outlines the mathematical formulas, market dynamics, and
   - **Elevated / Spiking (> 90th percentile):** Volatility shock or panic selling. Creates high option implied volatility (rich credit for option sellers).
   - **Compressing / Low (< 20th percentile):** Complacency or calm trending bull market. Cheap option premiums make debit spreads attractive.
 - **Decision Engine Impact:** Guides the Options Playbook between Credit Selling (CSPs / Credit Spreads) and Debit Spreads / Collars.
+
+---
+
+## 9. COPX / GLD (Physical Industrial Expansion vs. Monetary Fear)
+- **Ratio Formula:** `Price(COPX) / Price(GLD)`
+- **Constituents:**
+  - `COPX`: Global X Copper Miners ETF (Industrial electrification & manufacturing demand)
+  - `GLD`: SPDR Gold Trust (Monetary reserve & non-yielding safe haven)
+- **Market Dynamics:**
+  - **Rising (Copper Outperforming Gold):** Real-world physical manufacturing and infrastructure expansion underway. Global trade and manufacturing cycles are accelerating.
+  - **Falling (Gold Outperforming Copper):** Flight to monetary safety and fear of industrial recession or stagflation.
+- **Decision Engine Impact:** High positive weighting for Cyclicals and Industrials (CAT, DE).
+
+---
+
+## 10. HYG / LQD (Corporate Credit Solvency & Risk Spread)
+- **Ratio Formula:** `Price(HYG) / Price(LQD)`
+- **Constituents:**
+  - `HYG`: iShares iBoxx $ High Yield Corporate Bond ETF (Junk bonds)
+  - `LQD`: iShares iBoxx $ Investment Grade Corporate Bond ETF (High-grade credit)
+- **Market Dynamics:**
+  - **Rising (High Yield Spreads Compressing):** Abundant credit liquidity, low default expectations, and receptive corporate borrowing markets.
+  - **Falling (High Yield Underperforming):** Widening credit risk premiums and debt refinancing stress. Often precedes equity market downturns.
+- **Decision Engine Impact:** Key solvency risk filter for High-Beta Speculative Growth and Financials.
+
+---
+
+## 11. TIP / IEF (Real Interest Rates & Cost of Capital)
+- **Ratio Formula:** `Price(TIP) / Price(IEF)`
+- **Constituents:**
+  - `TIP`: iShares TIPS Bond ETF (Inflation-Protected Treasuries)
+  - `IEF`: iShares 7-10 Year Treasury Bond ETF (Nominal Treasuries)
+- **Market Dynamics:**
+  - **Rising (Breakeven Inflation Expectations Increasing):** Pricing power and real yield support for tangible growth.
+  - **Falling (Real Yields Tightening):** Real borrowing cost escalation, compressing long-duration tech multiples.
+- **Decision Engine Impact:** Critical discount factor for Mega-Cap Tech (GOOG, MSFT, NVDA).
+
+---
+
+## 12. VIX9D / VIX (Volatility Term Structure Panic Inversion)
+- **Ratio Formula:** `Price(^VIX9D) / Price(^VIX)`
+- **Constituents:**
+  - `^VIX9D`: CBOE 9-Day Volatility Index
+  - `^VIX`: CBOE 30-Day Volatility Index
+- **Market Dynamics:**
+  - **Inversion (> 1.05):** Immediate near-term panic and acute liquidity distress (backwardation). Option premiums become richly priced.
+  - **Normal Contango (< 0.95):** Calm, orderly market where 30-day volatility commands a normal forward premium.
+- **Decision Engine Impact:** Triggers defensive posture adjustments and identifies peak premium harvesting zones.
+
+---
+
+## 13. XBI / XLV (Biotech Clinical Innovation vs. Mature Pharma)
+- **Ratio Formula:** `Price(XBI) / Price(XLV)`
+- **Constituents:**
+  - `XBI`: SPDR S&P Biotech ETF (Clinical innovation, high research beta)
+  - `XLV`: Health Care Select Sector SPDR (Cash-flow stable mega-cap pharma)
+- **Market Dynamics:**
+  - **Rising (Biotech Leading):** High tolerance for clinical risk, long-duration research, and speculative vitality.
+  - **Falling (Pharma Leading):** Defensive flight into mature dividend-paying healthcare cash flows.
+- **Decision Engine Impact:** Macro barometer for risk-seeking innovation sentiment.
+
+---
+
+## 14. PKG / SPY (Cardboard Box Shipping Velocity)
+- **Ratio Formula:** `Price(PKG) / Price(SPY)`
+- **Constituents:**
+  - `PKG`: Packaging Corp of America (Containerboard packaging and shipping boxes)
+  - `SPY`: S&P 500 Index ETF
+- **Market Dynamics:**
+  - **Rising:** Physical goods throughput and e-commerce shipping volume are expanding faster than the broad market.
+  - **Falling:** Supply chain contraction or inventory destocking.
+- **Decision Engine Impact:** Ground-truth physical economy gauge for Cyclical and Consumer equities.
+
