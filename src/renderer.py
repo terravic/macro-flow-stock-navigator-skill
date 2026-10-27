@@ -1015,6 +1015,8 @@ class DashboardRenderer:
             --bg-body: #FAFAF9;
             --bg-surface: #FFFFFF;
             --bg-subtle: #F5F5F4;
+            --bg-executive-pane: #EEEDE9;
+            --border-executive-pane: #DCD9D5;
             --border-color: #E7E5E4;
             --text-primary: #1C1917;
             --text-secondary: #787774;
@@ -1038,6 +1040,8 @@ class DashboardRenderer:
             --bg-body: #0D0E11;
             --bg-surface: #16171D;
             --bg-subtle: #1D1E26;
+            --bg-executive-pane: #111217;
+            --border-executive-pane: #2C2D36;
             --border-color: #292A30;
             --text-primary: #ECE8E2;
             --text-secondary: #9A9895;
@@ -1835,8 +1839,8 @@ class DashboardRenderer:
 
         /* Executive Finding Bento Pane (DESIGN.md §1 & §4) */
         .unified-pane {{
-            background-color: var(--bg-surface);
-            border: 1px solid var(--border-color);
+            background-color: var(--bg-executive-pane);
+            border: 1px solid var(--border-executive-pane);
             border-radius: var(--radius-pane);
             padding: 18px 20px;
             margin-bottom: 18px;
@@ -1853,7 +1857,7 @@ class DashboardRenderer:
             letter-spacing: 0.03em;
             text-transform: uppercase;
             border: 1px solid var(--border-color);
-            background-color: var(--bg-body);
+            background-color: var(--bg-surface);
         }}
 
         .traffic-dot {{
@@ -1879,7 +1883,7 @@ class DashboardRenderer:
         }}
 
         .summary-pillar-cell {{
-            background-color: var(--bg-body);
+            background-color: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-pane);
             padding: 12px 14px;
@@ -1921,7 +1925,7 @@ class DashboardRenderer:
             border: 1px solid var(--border-color);
             border-left: 4px solid var(--viz-teal);
             border-radius: var(--radius-pane);
-            background-color: var(--bg-body);
+            background-color: var(--bg-surface);
             overflow: hidden;
             margin-bottom: 8px;
         }}
